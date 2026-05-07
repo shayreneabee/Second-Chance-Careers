@@ -88,6 +88,7 @@ SECOND_CHANCE_CATEGORIES = [
 SECOND_CHANCE_SEARCH_ITEMS = [
     {"label": "Educational Search", "resource_slug": "career-workforce"},
     {"label": "Job Search", "resource_slug": "job-search"},
+    {"label": "Quick Hire Applications", "resource_slug": "quick-hire-applications"},
     {"label": "Trade Search", "resource_slug": "career-workforce"},
     {"label": "Remote Work", "resource_slug": "job-search"},
     {"label": "Life Skills", "resource_slug": "resume-interview"},
@@ -177,6 +178,13 @@ SECOND_CHANCE_JOB_HELP = [
         "resource_slug": "job-search",
     },
     {
+        "title": "Quick hire applications",
+        "type": "Applications",
+        "body": "Go straight to restaurants, staffing agencies, day labor, and flexible work options that can move quickly.",
+        "cta": "Apply Quickly",
+        "resource_slug": "quick-hire-applications",
+    },
+    {
         "title": "Trade and apprenticeship path",
         "type": "Trade Search",
         "body": "Look for CDL, construction, electrical, welding, manufacturing, and paid apprenticeship routes.",
@@ -227,6 +235,61 @@ SECOND_CHANCE_RESOURCE_GROUPS = [
                 "url": "https://www.snagajob.com",
                 "note": "Find hourly, service, retail, and local opportunities.",
                 "icon": "S",
+            },
+        ],
+    },
+    {
+        "slug": "quick-hire-applications",
+        "title": "Quick Hire Applications",
+        "intro": "Direct application paths for restaurants, hourly work, staffing, day labor, and flexible shifts when someone needs momentum fast.",
+        "items": [
+            {
+                "label": "McDonald's Careers",
+                "url": "https://careers.mcdonalds.com",
+                "note": "Restaurant, crew, maintenance, and management roles with locations nationwide.",
+                "icon": "M",
+            },
+            {
+                "label": "Wendy's Careers",
+                "url": "https://wendys-careers.com/",
+                "note": "Crew, shift, restaurant, and leadership applications by location.",
+                "icon": "W",
+            },
+            {
+                "label": "Chipotle Jobs",
+                "url": "https://jobs.chipotle.com/",
+                "note": "Restaurant crew and management opportunities with clear application paths.",
+                "icon": "C",
+            },
+            {
+                "label": "Snagajob Hourly Jobs",
+                "url": "https://www.snagajob.com",
+                "note": "Hourly restaurant, retail, warehouse, and local service jobs.",
+                "icon": "S",
+            },
+            {
+                "label": "PeopleReady Jobs",
+                "url": "https://jobs.peopleready.com/",
+                "note": "Staffing, warehouse, construction, hospitality, and same-week work options.",
+                "icon": "PR",
+            },
+            {
+                "label": "Labor Finders",
+                "url": "https://www.laborfinders.com/",
+                "note": "Day labor, industrial, construction, hospitality, and skilled trades staffing.",
+                "icon": "LF",
+            },
+            {
+                "label": "Instawork",
+                "url": "https://www.instawork.com/worker",
+                "note": "Flexible shifts for hospitality, warehouse, events, and local services.",
+                "icon": "IW",
+            },
+            {
+                "label": "Wonolo",
+                "url": "https://www.wonolo.com/workers/",
+                "note": "Flexible local work opportunities with short-term and shift-based jobs.",
+                "icon": "WO",
             },
         ],
     },
