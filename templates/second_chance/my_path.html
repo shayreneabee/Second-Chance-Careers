@@ -126,6 +126,21 @@
     font-size: 0.95rem;
   }
 
+  .step-link {
+    display: inline-flex;
+    width: fit-content;
+    margin-top: 0.45rem;
+    color: var(--sc-teal-dark);
+    font-size: 0.84rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .step-link:hover {
+    text-decoration: underline;
+  }
+
   .next-step {
     margin: 1rem 0 0;
     padding: 0.85rem;
@@ -432,7 +447,6 @@
           <form class="check-form" method="POST">
             <input type="hidden" name="action" value="toggle_checklist">
             <input type="hidden" name="item_key" value="{{ item.key }}">
-            <input type="hidden" name="completed" value="0">
             <input
               type="checkbox"
               name="completed"
@@ -445,6 +459,19 @@
           <div>
             <strong>{{ item.title }}</strong>
             <p>{{ item.detail }}</p>
+            {% if item.key == "step-1" %}
+              <a class="step-link" href="{{ url_for('second_chance_edit_profile') }}">Start profile</a>
+            {% elif item.key == "step-2" %}
+              <a class="step-link" href="{{ url_for('second_chance_search') }}">Choose path</a>
+            {% elif item.key == "step-3" %}
+              <a class="step-link" href="{{ url_for('second_chance_resource_page', slug='resume-interview') }}">Resume help</a>
+            {% elif item.key == "step-4" %}
+              <a class="step-link" href="{{ url_for('second_chance_resource_page', slug='documents-id') }}">Document help</a>
+            {% elif item.key == "step-5" %}
+              <a class="step-link" href="{{ url_for('second_chance_resource_page', slug='resume-interview') }}">Interview prep</a>
+            {% elif item.key == "step-6" %}
+              <a class="step-link" href="{{ url_for('second_chance_resource_page', slug='quick-hire-applications') }}">Apply now</a>
+            {% endif %}
           </div>
         </li>
       {% endfor %}
