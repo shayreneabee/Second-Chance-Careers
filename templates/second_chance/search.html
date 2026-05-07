@@ -187,8 +187,8 @@
 <section class="search-grid">
   {% for item in search_items %}
     <article class="search-card">
-      <h2>{{ item }}</h2>
-      <a class="sc-button" href="{{ url_for('second_chance_resource_page', slug='job-search') }}"><span class="plus">+</span>Search</a>
+      <h2>{{ item.label }}</h2>
+      <a class="sc-button" href="{{ url_for('second_chance_resource_page', slug=item.resource_slug) }}"><span class="plus">+</span>Search</a>
     </article>
   {% endfor %}
 </section>

@@ -323,8 +323,8 @@
 <section class="quick-search" aria-label="Search resources">
   {% for item in search_items %}
     <article class="quick-item">
-      <h3>{{ item }}</h3>
-      <a class="sc-button" href="{{ url_for('second_chance_search') }}"><span class="plus">+</span>Search</a>
+      <h3>{{ item.label }}</h3>
+      <a class="sc-button" href="{{ url_for('second_chance_resource_page', slug=item.resource_slug) }}"><span class="plus">+</span>Search</a>
     </article>
   {% endfor %}
 </section>

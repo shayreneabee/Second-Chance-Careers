@@ -58,7 +58,7 @@
   {% for resource in category.resources %}
     <article class="resource-card">
       <h2>{{ resource }}</h2>
-      <a class="sc-button" href="{{ url_for('second_chance_resources') }}">Learn More</a>
+      <a class="sc-button" href="{{ url_for('second_chance_resource_page', slug=category.resource_slug) }}">Learn More</a>
     </article>
   {% endfor %}
 </section>

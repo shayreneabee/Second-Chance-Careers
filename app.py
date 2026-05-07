@@ -44,6 +44,7 @@ SECOND_CHANCE_CATEGORIES = [
         "search_label": "College Courses",
         "image": "educational-crop.png",
         "hero": "educational-crop.png",
+        "resource_slug": "career-workforce",
         "resources": ["GED prep", "College applications", "Transcript help"],
     },
     {
@@ -52,6 +53,7 @@ SECOND_CHANCE_CATEGORIES = [
         "search_label": "Trade Search",
         "image": "trade-crop.png",
         "hero": "truck-crop.png",
+        "resource_slug": "career-workforce",
         "resources": ["CDL programs", "Welding", "Electrical apprenticeships"],
     },
     {
@@ -60,6 +62,7 @@ SECOND_CHANCE_CATEGORIES = [
         "search_label": "Life Skills",
         "image": "life-crop.png",
         "hero": "classroom-crop.png",
+        "resource_slug": "resume-interview",
         "resources": ["GED prep", "Interview skills", "Job prep"],
     },
     {
@@ -68,6 +71,7 @@ SECOND_CHANCE_CATEGORIES = [
         "search_label": "Occupation Search",
         "image": "occupational-crop.png",
         "hero": "occupational-crop.png",
+        "resource_slug": "career-workforce",
         "resources": ["Healthcare licensing", "CDL support", "State board steps"],
     },
     {
@@ -76,19 +80,20 @@ SECOND_CHANCE_CATEGORIES = [
         "search_label": "Job Search",
         "image": "jobs-crop.png",
         "hero": "road-crop.png",
+        "resource_slug": "job-search",
         "resources": ["Remote work", "Local openings", "Resume-ready roles"],
     },
 ]
 
 SECOND_CHANCE_SEARCH_ITEMS = [
-    "Educational Search",
-    "Job Search",
-    "Trade Search",
-    "Remote Work",
-    "Life Skills",
-    "Occupational License",
-    "Apprenticeships",
-    "College Courses",
+    {"label": "Educational Search", "resource_slug": "career-workforce"},
+    {"label": "Job Search", "resource_slug": "job-search"},
+    {"label": "Trade Search", "resource_slug": "career-workforce"},
+    {"label": "Remote Work", "resource_slug": "job-search"},
+    {"label": "Life Skills", "resource_slug": "resume-interview"},
+    {"label": "Occupational License", "resource_slug": "career-workforce"},
+    {"label": "Apprenticeships", "resource_slug": "career-workforce"},
+    {"label": "College Courses", "resource_slug": "career-workforce"},
 ]
 
 SECOND_CHANCE_SKILLS = [
