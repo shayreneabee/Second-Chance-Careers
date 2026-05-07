@@ -66,17 +66,12 @@
     {% set label = resource.label if resource.label is defined else resource %}
     {% set note = resource.note if resource.note is defined else "" %}
     {% set href = resource.url if resource.url is defined else url_for('second_chance_resource_page', slug=category.resource_slug) %}
-    {% set is_external = href.startswith('http') %}
     <article class="resource-card">
       <h2>{{ label }}</h2>
       {% if note %}
         <p>{{ note }}</p>
       {% endif %}
-      <a
-        class="sc-button"
-        href="{{ href }}"
-        {% if is_external %}target="_blank" rel="noopener noreferrer"{% endif %}
-      >Learn More</a>
+      <a class="sc-button" href="{{ href }}">Learn More</a>
     </article>
   {% endfor %}
 </section>

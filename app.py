@@ -129,19 +129,24 @@ SECOND_CHANCE_CATEGORIES = [
         "resource_slug": "career-workforce",
         "resources": [
             {
-                "label": "License finder",
-                "note": "Search state occupational license requirements by career.",
-                "url": "https://www.careeronestop.org/Toolkit/Training/find-licenses.aspx",
+                "label": "Do you need a license?",
+                "note": "Learn how occupational licenses work and when a career may require one.",
+                "url": "https://cloudfront.careeronestop.org/FindTraining/Types/do-you-need-a-license.aspx?frd=true&lang=en",
             },
             {
-                "label": "CDL support",
-                "note": "Official FMCSA information on CDL requirements and training steps.",
-                "url": "https://www.fmcsa.dot.gov/cdl",
+                "label": "Nursing license guidance",
+                "note": "State-by-state nursing license guidance for RN, LPN, and VN paths.",
+                "url": "https://www.ncsbn.org/nursing-regulation/licensure/nurse-licensure-guidance.page",
             },
             {
                 "label": "State ID and DMV",
                 "note": "Find state motor vehicle agencies for IDs, licenses, and records.",
                 "url": "https://www.usa.gov/state-motor-vehicle-services",
+            },
+            {
+                "label": "CDL driver requirements",
+                "note": "Official FMCSA information on CDL classes, endorsements, restrictions, and driver requirements.",
+                "url": "https://www.fmcsa.dot.gov/registration/commercial-drivers-license/drivers",
             },
         ],
     },
@@ -386,10 +391,16 @@ SECOND_CHANCE_RESOURCE_GROUPS = [
         "intro": "Use these when someone needs training, local workforce support, clothing, veteran services, or career counseling.",
         "items": [
             {
-                "label": "CareerOneStop",
-                "url": "https://www.careeronestop.org",
-                "note": "Official career, training, and job-search resources from the U.S. Department of Labor.",
-                "icon": "★",
+                "label": "Do You Need a License?",
+                "url": "https://cloudfront.careeronestop.org/FindTraining/Types/do-you-need-a-license.aspx?frd=true&lang=en",
+                "note": "Learn how occupational licenses work and when a career may require one.",
+                "icon": "LIC",
+            },
+            {
+                "label": "Nursing License Guidance",
+                "url": "https://www.ncsbn.org/nursing-regulation/licensure/nurse-licensure-guidance.page",
+                "note": "State-by-state guidance for RN, LPN, and VN licensing paths.",
+                "icon": "RN",
             },
             {
                 "label": "Find Training",
@@ -398,10 +409,16 @@ SECOND_CHANCE_RESOURCE_GROUPS = [
                 "icon": "TR",
             },
             {
-                "label": "FMCSA CDL Steps",
-                "url": "https://www.fmcsa.dot.gov/registration/commercial-drivers-license/how-do-i-get-commercial-drivers-license",
-                "note": "Official steps for getting a Commercial Driver's License.",
+                "label": "CDL Driver Requirements",
+                "url": "https://www.fmcsa.dot.gov/registration/commercial-drivers-license/drivers",
+                "note": "Official CDL classes, endorsements, restrictions, and driver requirements.",
                 "icon": "CDL",
+            },
+            {
+                "label": "CareerOneStop",
+                "url": "https://www.careeronestop.org",
+                "note": "Official career, training, and job-search resources from the U.S. Department of Labor.",
+                "icon": "★",
             },
             {
                 "label": "CDL Training Registry",
