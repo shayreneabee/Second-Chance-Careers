@@ -47,7 +47,23 @@ SECOND_CHANCE_CATEGORIES = [
         "image": "educational-crop.png",
         "hero": "educational-crop.png",
         "resource_slug": "career-workforce",
-        "resources": ["GED prep", "College applications", "Transcript help"],
+        "resources": [
+            {
+                "label": "GED prep",
+                "note": "Official GED study, class, account, and test information.",
+                "url": "https://www.ged.com",
+            },
+            {
+                "label": "Find training programs",
+                "note": "Search schools, short-term training, certificates, and local programs.",
+                "url": "https://www.careeronestop.org/FindTraining/find-training.aspx",
+            },
+            {
+                "label": "College financial aid",
+                "note": "Federal student aid information for grants, FAFSA, and school planning.",
+                "url": "https://studentaid.gov/",
+            },
+        ],
     },
     {
         "slug": "trade",
@@ -56,7 +72,28 @@ SECOND_CHANCE_CATEGORIES = [
         "image": "trade-crop.png",
         "hero": "truck-crop.png",
         "resource_slug": "career-workforce",
-        "resources": ["CDL programs", "Welding", "Electrical apprenticeships"],
+        "resources": [
+            {
+                "label": "CDL steps",
+                "note": "FMCSA's official guide for getting a Commercial Driver's License.",
+                "url": "https://www.fmcsa.dot.gov/registration/commercial-drivers-license/how-do-i-get-commercial-drivers-license",
+            },
+            {
+                "label": "CDL training providers",
+                "note": "Search FMCSA's Training Provider Registry for CDL training.",
+                "url": "https://tpr.fmcsa.dot.gov/",
+            },
+            {
+                "label": "Find trade training",
+                "note": "Search training programs for welding, construction, electrical, HVAC, and more.",
+                "url": "https://www.careeronestop.org/FindTraining/find-training.aspx",
+            },
+            {
+                "label": "Available apprenticeships",
+                "note": "Search open registered apprenticeship opportunities.",
+                "url": "https://www.apprenticeship.gov/apprenticeship-job-finder",
+            },
+        ],
     },
     {
         "slug": "life-skills",
@@ -65,7 +102,23 @@ SECOND_CHANCE_CATEGORIES = [
         "image": "life-crop.png",
         "hero": "classroom-crop.png",
         "resource_slug": "resume-interview",
-        "resources": ["GED prep", "Interview skills", "Job prep"],
+        "resources": [
+            {
+                "label": "GED prep",
+                "note": "Official GED study options, classes, practice, and test scheduling.",
+                "url": "https://www.ged.com",
+            },
+            {
+                "label": "Interview skills",
+                "note": "Practice questions, interview tips, and follow-up guidance.",
+                "url": "https://www.careeronestop.org/JobSearch/Interview/interview.aspx",
+            },
+            {
+                "label": "Job prep",
+                "note": "Plan a job search, gather documents, prepare applications, and get ready to interview.",
+                "url": "https://www.careeronestop.org/JobSearch/job-search.aspx",
+            },
+        ],
     },
     {
         "slug": "occupational-license",
@@ -74,7 +127,23 @@ SECOND_CHANCE_CATEGORIES = [
         "image": "occupational-crop.png",
         "hero": "occupational-crop.png",
         "resource_slug": "career-workforce",
-        "resources": ["Healthcare licensing", "CDL support", "State board steps"],
+        "resources": [
+            {
+                "label": "License finder",
+                "note": "Search state occupational license requirements by career.",
+                "url": "https://www.careeronestop.org/Toolkit/Training/find-licenses.aspx",
+            },
+            {
+                "label": "CDL support",
+                "note": "Official FMCSA information on CDL requirements and training steps.",
+                "url": "https://www.fmcsa.dot.gov/cdl",
+            },
+            {
+                "label": "State ID and DMV",
+                "note": "Find state motor vehicle agencies for IDs, licenses, and records.",
+                "url": "https://www.usa.gov/state-motor-vehicle-services",
+            },
+        ],
     },
     {
         "slug": "jobs",
@@ -83,7 +152,23 @@ SECOND_CHANCE_CATEGORIES = [
         "image": "jobs-crop.png",
         "hero": "road-crop.png",
         "resource_slug": "job-search",
-        "resources": ["Remote work", "Local openings", "Resume-ready roles"],
+        "resources": [
+            {
+                "label": "Job prep",
+                "note": "CareerOneStop guide for planning your search and preparing applications.",
+                "url": "https://www.careeronestop.org/JobSearch/job-search.aspx",
+            },
+            {
+                "label": "Quick-hire applications",
+                "note": "Restaurants, day labor, staffing, and flexible work links.",
+                "url": "/second-chance/resources/quick-hire-applications",
+            },
+            {
+                "label": "Local job listings",
+                "note": "Search Indeed for local and remote openings.",
+                "url": "https://www.indeed.com",
+            },
+        ],
     },
 ]
 
@@ -307,6 +392,30 @@ SECOND_CHANCE_RESOURCE_GROUPS = [
                 "icon": "★",
             },
             {
+                "label": "Find Training",
+                "url": "https://www.careeronestop.org/FindTraining/find-training.aspx",
+                "note": "Search trade schools, certificates, short-term training, and local programs.",
+                "icon": "TR",
+            },
+            {
+                "label": "FMCSA CDL Steps",
+                "url": "https://www.fmcsa.dot.gov/registration/commercial-drivers-license/how-do-i-get-commercial-drivers-license",
+                "note": "Official steps for getting a Commercial Driver's License.",
+                "icon": "CDL",
+            },
+            {
+                "label": "CDL Training Registry",
+                "url": "https://tpr.fmcsa.dot.gov/",
+                "note": "FMCSA registry for finding approved entry-level driver training providers.",
+                "icon": "TPR",
+            },
+            {
+                "label": "Apprenticeship Job Finder",
+                "url": "https://www.apprenticeship.gov/apprenticeship-job-finder",
+                "note": "Search open registered apprenticeship opportunities and apply with sponsors.",
+                "icon": "A",
+            },
+            {
                 "label": "American Job Center Finder",
                 "url": "https://www.careeronestop.org/LocalHelp/AmericanJobCenters/american-job-centers.aspx",
                 "note": "Find local workforce offices and employment support near you.",
@@ -373,6 +482,18 @@ SECOND_CHANCE_RESOURCE_GROUPS = [
                 "url": "https://www.careeronestop.org/JobSearch/Interview/interview.aspx",
                 "note": "Interview preparation, questions, and follow-up help.",
                 "icon": "Q",
+            },
+            {
+                "label": "GED Prep",
+                "url": "https://www.ged.com",
+                "note": "Official GED study options, classes, practice, and test scheduling.",
+                "icon": "GED",
+            },
+            {
+                "label": "Job Prep",
+                "url": "https://www.careeronestop.org/JobSearch/job-search.aspx",
+                "note": "Plan your search, gather documents, prepare applications, and get ready for interviews.",
+                "icon": "JP",
             },
             {
                 "label": "Canva Resume Templates",
