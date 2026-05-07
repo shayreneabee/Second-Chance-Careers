@@ -35,6 +35,7 @@
 
   .summary-card,
   .checklist-card,
+  .applications-card,
   .help-card,
   .document-card,
   .resource-strip-card {
@@ -71,11 +72,13 @@
   }
 
   .checklist-card,
-  .document-card {
+  .document-card,
+  .applications-card {
     padding: 1rem;
   }
 
   .checklist-card h2,
+  .applications-card h2,
   .document-card h2,
   .job-section h2 {
     margin: 0 0 0.85rem;
@@ -101,6 +104,10 @@
     padding: 0.45rem 0;
   }
 
+  .check-form {
+    display: contents;
+  }
+
   .path-checklist input {
     width: 22px;
     height: 22px;
@@ -117,6 +124,103 @@
     margin: 0.2rem 0 0;
     color: #42615e;
     font-size: 0.95rem;
+  }
+
+  .next-step {
+    margin: 1rem 0 0;
+    padding: 0.85rem;
+    border-radius: var(--sc-radius-sm);
+    background: rgba(242, 255, 168, 0.55);
+    color: #173f3c;
+  }
+
+  .next-step small {
+    display: block;
+    color: var(--sc-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 900;
+  }
+
+  .applications-card {
+    margin: 0 1rem 1rem;
+  }
+
+  .application-form {
+    display: grid;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+  }
+
+  .application-form input,
+  .application-form textarea,
+  .status-form select {
+    width: 100%;
+    border: 1px solid var(--sc-line);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.82);
+    color: #144a39;
+    padding: 0.72rem 0.82rem;
+    outline: 0;
+  }
+
+  .application-form textarea {
+    min-height: 86px;
+    resize: vertical;
+  }
+
+  .application-list {
+    display: grid;
+    gap: 0.7rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .application-item {
+    display: grid;
+    gap: 0.6rem;
+    padding: 0.85rem;
+    border: 1px solid rgba(15, 111, 107, 0.12);
+    border-radius: var(--sc-radius-sm);
+    background: rgba(255, 255, 255, 0.68);
+  }
+
+  .application-item h3 {
+    margin: 0;
+    color: var(--sc-teal-dark);
+    font-size: 1.12rem;
+    line-height: 1.05;
+  }
+
+  .application-item p {
+    margin: 0;
+    color: #42615e;
+    font-size: 0.92rem;
+  }
+
+  .application-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    align-items: center;
+    color: var(--sc-muted);
+    font-size: 0.86rem;
+  }
+
+  .application-meta a {
+    color: var(--sc-teal-dark);
+    font-weight: 900;
+  }
+
+  .status-form {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .empty-state {
+    margin: 0;
+    color: #42615e;
   }
 
   .document-list {
@@ -256,6 +360,24 @@
       padding: 2rem;
     }
 
+    .applications-card {
+      margin: 0 2rem 2rem;
+    }
+
+    .application-form {
+      grid-template-columns: repeat(2, 1fr);
+      align-items: start;
+    }
+
+    .application-form textarea,
+    .application-form .sc-button {
+      grid-column: 1 / -1;
+    }
+
+    .application-list {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
     .job-section {
       padding: 0 2rem 2rem;
     }
@@ -279,22 +401,25 @@
 
 {% block content %}
 <section class="path-hero">
-  <h1>My Path Dashboard</h1>
-  <p>Start where you are. This dashboard organizes the practical steps: what to build, what to gather, how to prepare, and where to search for jobs.</p>
+  <h1>{{ profile.display_name }}'s Path</h1>
+  <p>Start where you are. This dashboard saves your practical steps, tracks applications, and keeps the next move clear when you come back.</p>
 </section>
 
 <section class="dashboard-summary" aria-label="Path summary">
   <article class="summary-card">
-    <small>Step 1</small>
-    <strong>Build Your Path</strong>
+    <small>Progress</small>
+    <strong>{{ completed_count }} of {{ total_steps }} Done</strong>
   </article>
   <article class="summary-card">
-    <small>Step 2</small>
-    <strong>Get What You Need</strong>
+    <small>Applications</small>
+    <strong>{{ applications|length }} Saved</strong>
   </article>
   <article class="summary-card">
-    <small>Step 3</small>
-    <strong>Apply & Move Forward</strong>
+    <small>Next Step</small>
+    <strong>
+      {% set next_items = checklist|rejectattr('completed')|list %}
+      {{ next_items[0].title if next_items else "Keep Going" }}
+    </strong>
   </article>
 </section>
 
@@ -304,7 +429,19 @@
     <ul class="path-checklist">
       {% for item in checklist %}
         <li>
-          <input type="checkbox" {% if loop.index <= 2 %}checked{% endif %} aria-label="{{ item.title }}">
+          <form class="check-form" method="POST">
+            <input type="hidden" name="action" value="toggle_checklist">
+            <input type="hidden" name="item_key" value="{{ item.key }}">
+            <input type="hidden" name="completed" value="0">
+            <input
+              type="checkbox"
+              name="completed"
+              value="1"
+              {% if item.completed %}checked{% endif %}
+              aria-label="{{ item.title }}"
+              onchange="this.form.submit()"
+            >
+          </form>
           <div>
             <strong>{{ item.title }}</strong>
             <p>{{ item.detail }}</p>
@@ -312,6 +449,11 @@
         </li>
       {% endfor %}
     </ul>
+    {% set next_items = checklist|rejectattr('completed')|list %}
+    <div class="next-step">
+      <small>Next suggested step</small>
+      <strong>{{ next_items[0].title if next_items else "All readiness steps are checked. Keep applying and following up." }}</strong>
+    </div>
   </article>
 
   <article class="document-card">
@@ -324,6 +466,53 @@
       <li>Applications <a href="{{ url_for('second_chance_resource_page', slug='quick-hire-applications') }}"><span>Apply</span></a></li>
     </ul>
   </article>
+</section>
+
+<section class="applications-card">
+  <h2>Applications Tracker</h2>
+  <form class="application-form" method="POST">
+    <input type="hidden" name="action" value="add_application">
+    <input name="company" placeholder="Company or program" required>
+    <input name="role" placeholder="Role or opportunity">
+    <input name="resource_url" type="url" placeholder="Application link">
+    <textarea name="notes" placeholder="Notes, contact name, interview time, or follow-up reminder"></textarea>
+    <button class="sc-button" type="submit">Save Application</button>
+  </form>
+
+  {% if applications %}
+    <ul class="application-list">
+      {% for application in applications %}
+        <li class="application-item">
+          <div>
+            <h3>{{ application.company }}</h3>
+            {% if application.role %}
+              <p>{{ application.role }}</p>
+            {% endif %}
+          </div>
+          <div class="application-meta">
+            <span>Status: {{ application.status }}</span>
+            {% if application.resource_url %}
+              <a href="{{ application.resource_url }}" target="_blank" rel="noopener noreferrer">Open link ↗</a>
+            {% endif %}
+          </div>
+          {% if application.notes %}
+            <p>{{ application.notes }}</p>
+          {% endif %}
+          <form class="status-form" method="POST">
+            <input type="hidden" name="action" value="update_application">
+            <input type="hidden" name="application_id" value="{{ application.id }}">
+            <select name="status" onchange="this.form.submit()" aria-label="Application status for {{ application.company }}">
+              {% for status in ["Interested", "Applied", "Interview", "Offer", "Closed"] %}
+                <option value="{{ status }}" {% if application.status == status %}selected{% endif %}>{{ status }}</option>
+              {% endfor %}
+            </select>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty-state">No applications saved yet. Add the first one after you apply or find a job you want to track.</p>
+  {% endif %}
 </section>
 
 <section class="job-section">
@@ -350,8 +539,8 @@
 </section>
 
 <section class="start-panel">
-  <h2>Your next chapter deserves a plan.</h2>
-  <p>Use the checklist, prepare your packet, then search for opportunities that match your path.</p>
-  <a class="sc-button" href="{{ url_for('second_chance_signup') }}">Create Account</a>
+  <h2>Your next chapter has a plan.</h2>
+  <p>Keep checking off steps, save each application, and come back to see what needs your attention next.</p>
+  <a class="sc-button" href="{{ url_for('second_chance_profile') }}">View Profile</a>
 </section>
 {% endblock %}

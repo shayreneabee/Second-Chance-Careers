@@ -506,6 +506,34 @@ def init_db():
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS second_chance_checklist_progress (
+                user_id INTEGER NOT NULL,
+                item_key TEXT NOT NULL,
+                completed INTEGER DEFAULT 0,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(user_id, item_key),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS second_chance_applications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                company TEXT NOT NULL,
+                role TEXT DEFAULT '',
+                status TEXT DEFAULT 'Applied',
+                resource_url TEXT DEFAULT '',
+                notes TEXT DEFAULT '',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
 
         existing_columns = {
             row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()
@@ -912,6 +940,121 @@ def second_chance_resource_item(group_slug, item_index):
     return items[item_index]
 
 
+def second_chance_checklist_items():
+    return [
+        {
+            "key": f"step-{index}",
+            "title": item["title"],
+            "detail": item["detail"],
+        }
+        for index, item in enumerate(SECOND_CHANCE_CHECKLIST, start=1)
+    ]
+
+
+def get_second_chance_checklist(user_id):
+    items = second_chance_checklist_items()
+    if not user_id:
+        return [
+            {
+                **item,
+                "completed": index <= 2,
+            }
+            for index, item in enumerate(items, start=1)
+        ]
+
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT item_key, completed
+            FROM second_chance_checklist_progress
+            WHERE user_id = ?
+            """,
+            (user_id,),
+        ).fetchall()
+    progress = {row["item_key"]: bool(row["completed"]) for row in rows}
+    return [
+        {
+            **item,
+            "completed": progress.get(item["key"], False),
+        }
+        for item in items
+    ]
+
+
+def update_second_chance_checklist_item(user_id, item_key, completed):
+    valid_keys = {item["key"] for item in second_chance_checklist_items()}
+    if item_key not in valid_keys:
+        return False
+    with get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO second_chance_checklist_progress (
+                user_id, item_key, completed, updated_at
+            )
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id, item_key)
+            DO UPDATE SET completed = excluded.completed,
+                          updated_at = CURRENT_TIMESTAMP
+            """,
+            (user_id, item_key, 1 if completed else 0),
+        )
+    return True
+
+
+def get_second_chance_applications(user_id):
+    if not user_id:
+        return []
+    with get_db() as conn:
+        return conn.execute(
+            """
+            SELECT *
+            FROM second_chance_applications
+            WHERE user_id = ?
+            ORDER BY updated_at DESC, id DESC
+            """,
+            (user_id,),
+        ).fetchall()
+
+
+def create_second_chance_application(user_id, company, role, resource_url, notes):
+    company = company.strip()
+    if not company:
+        return False
+    with get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO second_chance_applications (
+                user_id, company, role, resource_url, notes
+            )
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                user_id,
+                company,
+                role.strip(),
+                resource_url.strip(),
+                notes.strip(),
+            ),
+        )
+    return True
+
+
+def update_second_chance_application_status(user_id, application_id, status):
+    allowed_statuses = {"Interested", "Applied", "Interview", "Offer", "Closed"}
+    if status not in allowed_statuses:
+        return False
+    with get_db() as conn:
+        result = conn.execute(
+            """
+            UPDATE second_chance_applications
+            SET status = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND user_id = ?
+            """,
+            (status, application_id, user_id),
+        )
+    return result.rowcount > 0
+
+
 def get_performances(profile_id=None):
     sql = "SELECT * FROM performances"
     params = []
@@ -1010,13 +1153,57 @@ def second_chance_home():
     )
 
 
-@app.route("/my-path")
-@app.route("/second-chance/my-path")
+@app.route("/my-path", methods=["GET", "POST"])
+@app.route("/second-chance/my-path", methods=["GET", "POST"])
 def second_chance_my_path():
+    profile = current_user()
+    if not profile:
+        flash("Please sign in to use your personal path dashboard.")
+        return redirect(url_for("second_chance_login"))
+
+    if request.method == "POST":
+        action = request.form.get("action", "").strip()
+        if action == "toggle_checklist":
+            item_key = request.form.get("item_key", "").strip()
+            completed = request.form.get("completed") == "1"
+            if update_second_chance_checklist_item(profile.id, item_key, completed):
+                flash("Checklist updated.")
+            else:
+                flash("That checklist item was not found.")
+        elif action == "add_application":
+            if create_second_chance_application(
+                profile.id,
+                request.form.get("company", ""),
+                request.form.get("role", ""),
+                request.form.get("resource_url", ""),
+                request.form.get("notes", ""),
+            ):
+                flash("Application saved.")
+            else:
+                flash("Company name is required to save an application.")
+        elif action == "update_application":
+            application_id = request.form.get("application_id", type=int)
+            status = request.form.get("status", "").strip()
+            if application_id and update_second_chance_application_status(
+                profile.id,
+                application_id,
+                status,
+            ):
+                flash("Application status updated.")
+            else:
+                flash("That application could not be updated.")
+        return redirect(url_for("second_chance_my_path"))
+
+    checklist = get_second_chance_checklist(profile.id)
+    completed_count = sum(1 for item in checklist if item["completed"])
+    applications = get_second_chance_applications(profile.id)
     return render_template(
         "second_chance/my_path.html",
-        profile=current_user(),
-        checklist=SECOND_CHANCE_CHECKLIST,
+        profile=profile,
+        checklist=checklist,
+        completed_count=completed_count,
+        total_steps=len(checklist),
+        applications=applications,
         job_help=SECOND_CHANCE_JOB_HELP,
         features=SECOND_CHANCE_FEATURES,
         resource_groups=SECOND_CHANCE_RESOURCE_GROUPS,
