@@ -144,9 +144,9 @@ SECOND_CHANCE_CATEGORIES = [
                 "url": "https://www.usa.gov/state-motor-vehicle-services",
             },
             {
-                "label": "CDL driver requirements",
-                "note": "Official FMCSA information on CDL classes, endorsements, restrictions, and driver requirements.",
-                "url": "https://www.fmcsa.dot.gov/registration/commercial-drivers-license/drivers",
+                "label": "Healthcare license steps",
+                "note": "State-by-state guidance for healthcare and nursing license requirements.",
+                "url": "https://www.ncsbn.org/nursing-regulation/licensure/nurse-licensure-guidance.page",
             },
         ],
     },
@@ -409,22 +409,10 @@ SECOND_CHANCE_RESOURCE_GROUPS = [
                 "icon": "TR",
             },
             {
-                "label": "CDL Driver Requirements",
-                "url": "https://www.fmcsa.dot.gov/registration/commercial-drivers-license/drivers",
-                "note": "Official CDL classes, endorsements, restrictions, and driver requirements.",
-                "icon": "CDL",
-            },
-            {
                 "label": "CareerOneStop",
                 "url": "https://www.careeronestop.org",
                 "note": "Official career, training, and job-search resources from the U.S. Department of Labor.",
                 "icon": "★",
-            },
-            {
-                "label": "CDL Training Registry",
-                "url": "https://tpr.fmcsa.dot.gov/",
-                "note": "FMCSA registry for finding approved entry-level driver training providers.",
-                "icon": "TPR",
             },
             {
                 "label": "Apprenticeship Job Finder",
