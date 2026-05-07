@@ -1,6 +1,7 @@
 import os
 import secrets
 import sqlite3
+import time
 from functools import wraps
 from pathlib import Path
 from types import SimpleNamespace
@@ -36,6 +37,7 @@ SECOND_CHANCE_URL = os.getenv(
     "SECOND_CHANCE_URL",
     "https://brentco.netlify.app/second-chance",
 )
+PASSWORD_RESET_SECONDS = int(os.getenv("PASSWORD_RESET_SECONDS", "3600"))
 
 SECOND_CHANCE_CATEGORIES = [
     {
@@ -491,6 +493,19 @@ def init_db():
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token_hash TEXT NOT NULL,
+                expires_at INTEGER NOT NULL,
+                used_at INTEGER,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
 
         existing_columns = {
             row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()
@@ -643,6 +658,94 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
                 user_id,
             ),
         )
+
+
+def create_password_reset_token(email):
+    normalized_email = email.strip().lower()
+    if not normalized_email:
+        return None
+
+    with get_db() as conn:
+        user = conn.execute(
+            "SELECT id FROM users WHERE email = ?",
+            (normalized_email,),
+        ).fetchone()
+        if not user:
+            return None
+
+        now = int(time.time())
+        token = secrets.token_urlsafe(32)
+        conn.execute(
+            """
+            INSERT INTO password_reset_tokens (
+                user_id, token_hash, expires_at, created_at
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                user["id"],
+                generate_password_hash(token),
+                now + PASSWORD_RESET_SECONDS,
+                now,
+            ),
+        )
+        conn.execute(
+            """
+            DELETE FROM password_reset_tokens
+            WHERE expires_at < ? OR used_at IS NOT NULL
+            """,
+            (now,),
+        )
+    return token
+
+
+def get_password_reset_user(token):
+    if not token:
+        return None
+
+    now = int(time.time())
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT password_reset_tokens.id AS token_id,
+                   password_reset_tokens.token_hash,
+                   users.*
+            FROM password_reset_tokens
+            JOIN users ON users.id = password_reset_tokens.user_id
+            WHERE password_reset_tokens.expires_at >= ?
+              AND password_reset_tokens.used_at IS NULL
+            ORDER BY password_reset_tokens.created_at DESC
+            LIMIT 25
+            """,
+            (now,),
+        ).fetchall()
+
+    for row in rows:
+        if check_password_hash(row["token_hash"], token):
+            return row
+    return None
+
+
+def reset_user_password(token, password):
+    reset_row = get_password_reset_user(token)
+    if not reset_row:
+        return False
+
+    now = int(time.time())
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (generate_password_hash(password), reset_row["id"]),
+        )
+        conn.execute(
+            """
+            UPDATE password_reset_tokens
+            SET used_at = ?
+            WHERE id = ?
+            """,
+            (now, reset_row["token_id"]),
+        )
+    return True
 
 
 def create_performance(profile_id, title, description, video_filename, thumb_filename):
@@ -1039,6 +1142,58 @@ def second_chance_login():
         return redirect(url_for("second_chance_profile"))
 
     return render_template("second_chance/login.html")
+
+
+@app.route("/second-chance/forgot-password", methods=["GET", "POST"])
+def second_chance_forgot_password():
+    reset_url = None
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        token = create_password_reset_token(email)
+        if token:
+            reset_url = url_for(
+                "second_chance_reset_password",
+                token=token,
+                _external=True,
+            )
+        flash("If that email is saved, a reset link is ready.")
+
+    return render_template(
+        "second_chance/forgot_password.html",
+        reset_url=reset_url,
+    )
+
+
+@app.route("/second-chance/reset-password/<token>", methods=["GET", "POST"])
+def second_chance_reset_password(token):
+    reset_user = get_password_reset_user(token)
+    if not reset_user:
+        flash("That reset link is invalid or expired. Please request a new one.")
+        return redirect(url_for("second_chance_forgot_password"))
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+        if len(password) < 8:
+            flash("Please choose a password with at least 8 characters.")
+            return redirect(url_for("second_chance_reset_password", token=token))
+        if password != confirm_password:
+            flash("Passwords do not match.")
+            return redirect(url_for("second_chance_reset_password", token=token))
+        if not reset_user_password(token, password):
+            flash("That reset link is invalid or expired. Please request a new one.")
+            return redirect(url_for("second_chance_forgot_password"))
+
+        session.clear()
+        session["user_id"] = reset_user["id"]
+        flash("Your password was reset. You are signed in.")
+        return redirect(url_for("second_chance_profile"))
+
+    return render_template(
+        "second_chance/reset_password.html",
+        token=token,
+        email=reset_user["email"],
+    )
 
 
 @app.route("/second-chance/logout")
