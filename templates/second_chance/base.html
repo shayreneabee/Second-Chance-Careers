@@ -86,35 +86,42 @@
     }
 
     .sc-brand:hover,
-    .sc-desktop-signup:hover {
+    .sc-desktop-link:hover,
+    .sc-home-link:hover {
       opacity: 0.82;
     }
 
-    .sc-menu {
+    .sc-home-link {
       justify-self: center;
-      width: 54px;
-      height: 48px;
-      border: 0;
-      background: transparent;
-      display: grid;
-      align-content: center;
-      gap: 9px;
-      cursor: pointer;
+      min-width: 58px;
+      min-height: 42px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      background: rgba(242, 255, 168, 0.16);
+      color: var(--sc-cream);
+      font-size: 0.82rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: opacity var(--sc-ease), background var(--sc-ease);
     }
 
-    .sc-menu span {
-      display: block;
-      height: 1px;
-      background: rgba(0, 0, 0, 0.76);
-    }
-
-    .sc-desktop-signup {
+    .sc-desktop-nav {
       display: none;
       justify-self: end;
       margin-right: 1.4rem;
+      align-items: center;
+      gap: 1.2rem;
+    }
+
+    .sc-desktop-link {
       color: var(--sc-cream);
-      font-size: 1.55rem;
-      letter-spacing: 0.07em;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      transition: opacity var(--sc-ease);
     }
 
     .sc-main { padding-bottom: 82px; }
@@ -171,7 +178,7 @@
       min-height: 70px;
       transform: translateX(-50%);
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       align-items: center;
       background: var(--sc-teal);
       color: var(--sc-cream);
@@ -232,8 +239,8 @@
         letter-spacing: 0.06em;
       }
 
-      .sc-menu { display: none; }
-      .sc-desktop-signup { display: block; }
+      .sc-home-link { display: none; }
+      .sc-desktop-nav { display: flex; }
       .sc-bottom { display: none; }
       .sc-main { padding-bottom: 0; }
     }
@@ -245,10 +252,13 @@
     <header class="sc-top">
       <a class="sc-logo" href="{{ url_for('second_chance_home') }}" aria-label="Second Chance Careers home"></a>
       <a class="sc-brand" href="{{ url_for('second_chance_home') }}">Second Chance Careers</a>
-      <a class="sc-desktop-signup" href="{{ url_for('second_chance_my_path') }}">My Path</a>
-      <button class="sc-menu" type="button" aria-label="Menu">
-        <span></span><span></span><span></span>
-      </button>
+      <a class="sc-home-link" href="{{ url_for('second_chance_home') }}">Home</a>
+      <nav class="sc-desktop-nav" aria-label="Second Chance primary navigation">
+        <a class="sc-desktop-link" href="{{ url_for('second_chance_home') }}">Home</a>
+        <a class="sc-desktop-link" href="{{ url_for('second_chance_search') }}">Search</a>
+        <a class="sc-desktop-link" href="{{ url_for('second_chance_profile') }}">Profile</a>
+        <a class="sc-desktop-link" href="{{ url_for('second_chance_my_path') }}">My Path</a>
+      </nav>
     </header>
 
     <main class="sc-main">
@@ -265,9 +275,10 @@
     </main>
 
     <nav class="sc-bottom" aria-label="Second Chance navigation">
-      <a href="{{ url_for('second_chance_search') }}" aria-label="Search">‹</a>
+      <a href="{{ url_for('second_chance_home') }}" aria-label="Home">⌂</a>
+      <a href="{{ url_for('second_chance_search') }}" aria-label="Search">⌕</a>
       <a href="{{ url_for('second_chance_profile') }}" aria-label="Profile">♙</a>
-      <a class="active" href="{{ url_for('second_chance_my_path') }}" aria-label="My Path">⌂</a>
+      <a class="active" href="{{ url_for('second_chance_my_path') }}" aria-label="My Path">✓</a>
     </nav>
   </div>
 </body>
