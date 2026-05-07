@@ -554,6 +554,22 @@ def profile_form_fields():
     }
 
 
+def second_chance_profile_fields(existing=None):
+    selected_skills = request.form.getlist("skills")
+    return {
+        "display_name": request.form.get("display_name", "").strip(),
+        "role": "Second Chance Member",
+        "genre": "Career readiness",
+        "city": request.form.get("city", "").strip(),
+        "bio": request.form.get("bio", "").strip()
+        or "Building a new career path with Second Chance Careers.",
+        "tags_csv": "resume, jobs, life skills",
+        "instrument": "",
+        "services_csv": ", ".join(selected_skills)
+        or (existing.services_csv if existing else ""),
+    }
+
+
 def uploaded_profile_media(current_pic="", current_video=""):
     profile_pic = current_pic or ""
     profile_video = current_video or ""
@@ -992,11 +1008,12 @@ def second_chance_signup():
             user_id = create_user(email, password, fields, profile_pic)
         except sqlite3.IntegrityError:
             flash("An account with that email already exists. Please sign in.")
-            return redirect(url_for("login"))
+            return redirect(url_for("second_chance_login"))
         except ValueError as exc:
             flash(str(exc))
             return redirect(url_for("second_chance_signup"))
 
+        session.clear()
         session["user_id"] = user_id
         flash("Welcome to Second Chance Careers.")
         return redirect(url_for("second_chance_profile"))
@@ -1004,16 +1021,88 @@ def second_chance_signup():
     return render_template("second_chance/signup.html")
 
 
+@app.route("/second-chance/login", methods=["GET", "POST"])
+def second_chance_login():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        with get_db() as conn:
+            row = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+
+        if not row or not check_password_hash(row["password_hash"], password):
+            flash("Invalid email or password.")
+            return redirect(url_for("second_chance_login"))
+
+        session.clear()
+        session["user_id"] = row["id"]
+        flash("Welcome back.")
+        return redirect(url_for("second_chance_profile"))
+
+    return render_template("second_chance/login.html")
+
+
+@app.route("/second-chance/logout")
+def second_chance_logout():
+    session.clear()
+    flash("You are logged out.")
+    return redirect(url_for("second_chance_login"))
+
+
 @app.route("/second-chance/profile")
 def second_chance_profile():
+    profile = current_user()
+    if not profile:
+        flash("Please sign in to see your saved profile.")
+        return redirect(url_for("second_chance_login"))
+    selected_skills = {
+        skill.strip() for skill in (profile.services_csv or "").split(",") if skill.strip()
+    }
     return render_template(
         "second_chance/profile.html",
-        profile=current_user(),
+        profile=profile,
+        selected_skills=selected_skills,
         skills=SECOND_CHANCE_SKILLS,
         search_items=SECOND_CHANCE_SEARCH_ITEMS[:4],
         checklist=SECOND_CHANCE_CHECKLIST,
         job_help=SECOND_CHANCE_JOB_HELP,
         resource_groups=SECOND_CHANCE_RESOURCE_GROUPS,
+    )
+
+
+@app.route("/second-chance/profile/edit", methods=["GET", "POST"])
+def second_chance_edit_profile():
+    user = current_user()
+    if not user:
+        flash("Please sign in to edit your profile.")
+        return redirect(url_for("second_chance_login"))
+
+    if request.method == "POST":
+        fields = second_chance_profile_fields(existing=user)
+        if not fields["display_name"]:
+            flash("Full name is required.")
+            return redirect(url_for("second_chance_edit_profile"))
+
+        try:
+            profile_pic, profile_video = uploaded_profile_media(
+                user.profile_pic,
+                user.profile_video,
+            )
+        except ValueError as exc:
+            flash(str(exc))
+            return redirect(url_for("second_chance_edit_profile"))
+
+        update_user_profile(user.id, fields, profile_pic, profile_video)
+        flash("Your Second Chance profile was saved.")
+        return redirect(url_for("second_chance_profile"))
+
+    selected_skills = {
+        skill.strip() for skill in (user.services_csv or "").split(",") if skill.strip()
+    }
+    return render_template(
+        "second_chance/edit_profile.html",
+        profile=user,
+        skills=SECOND_CHANCE_SKILLS,
+        selected_skills=selected_skills,
     )
 
 

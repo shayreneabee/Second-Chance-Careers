@@ -43,6 +43,33 @@
     font-size: 3rem;
   }
 
+  .profile-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.9rem;
+  }
+
+  .profile-actions .sc-button {
+    min-width: 118px;
+    min-height: 32px;
+    padding-inline: 0.9rem;
+    font-size: 0.78rem;
+  }
+
+  .profile-meta {
+    display: grid;
+    gap: 0.35rem;
+    margin-top: 0.8rem;
+    color: #244c49;
+    font-size: 0.92rem;
+    line-height: 1.25;
+  }
+
+  .profile-meta strong {
+    color: var(--sc-teal-dark);
+  }
+
   .skills-panel {
     margin-right: 0;
     background: var(--sc-teal);
@@ -250,6 +277,18 @@
     {% else %}
       <img class="profile-photo" src="{{ url_for('static', filename='second_chance/craig-crop.png') }}" alt="">
     {% endif %}
+    <div class="profile-meta">
+      {% if profile.city %}
+        <strong>{{ profile.city }}</strong>
+      {% endif %}
+      {% if profile.bio %}
+        <span>{{ profile.bio }}</span>
+      {% endif %}
+    </div>
+    <div class="profile-actions">
+      <a class="sc-button" href="{{ url_for('second_chance_edit_profile') }}">Edit</a>
+      <a class="sc-button" href="{{ url_for('second_chance_logout') }}">Logout</a>
+    </div>
   </div>
 
   <aside class="skills-panel">
@@ -257,7 +296,7 @@
     <div class="skill-list">
       {% for skill in skills %}
         <label>
-          <input type="checkbox" {% if loop.index in [1, 2, 5, 8] %}checked{% endif %}>
+          <input type="checkbox" {% if skill in selected_skills %}checked{% endif %} disabled>
           {{ skill }}
         </label>
       {% endfor %}

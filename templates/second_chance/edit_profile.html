@@ -1,0 +1,143 @@
+{% extends "second_chance/base.html" %}
+
+{% block title %}Edit Profile | Second Chance Careers{% endblock %}
+
+{% block head %}
+<style>
+  .edit-panel {
+    background: var(--sc-cream);
+    padding: 1.2rem 1.2rem 5rem;
+  }
+
+  .edit-form {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .sc-field,
+  .sc-area {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.85rem 1rem;
+    border-radius: 14px;
+    background: rgba(246, 255, 252, 0.92);
+    color: #144a39;
+    box-shadow: 0 8px 18px rgba(5, 55, 52, 0.08);
+  }
+
+  .sc-field span,
+  .sc-area span {
+    font-size: 0.82rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .sc-field input,
+  .sc-area textarea {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #144a39;
+    font: inherit;
+  }
+
+  .sc-area textarea {
+    min-height: 120px;
+    resize: vertical;
+  }
+
+  .skill-checks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    padding: 0.9rem 1rem;
+    border-radius: 14px;
+    background: rgba(246, 255, 252, 0.92);
+    color: #144a39;
+    box-shadow: 0 8px 18px rgba(5, 55, 52, 0.08);
+  }
+
+  .skill-checks strong {
+    grid-column: 1 / -1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.82rem;
+  }
+
+  .skill-checks label {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.92rem;
+  }
+
+  .edit-actions {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .edit-actions .sc-button {
+    width: 100%;
+    min-height: 56px;
+  }
+
+  @media (min-width: 760px) {
+    .edit-panel {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 1.5rem 2rem 4rem;
+      border-radius: 0 0 28px 28px;
+      box-shadow: var(--sc-shadow);
+    }
+
+    .edit-actions {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sc-band">Edit Profile</div>
+
+<section class="edit-panel">
+  <form class="edit-form" method="POST" enctype="multipart/form-data">
+    <label class="sc-field">
+      <span>Full name</span>
+      <input name="display_name" value="{{ profile.display_name or '' }}" required>
+    </label>
+
+    <label class="sc-field">
+      <span>City, State</span>
+      <input name="city" value="{{ profile.city or '' }}" placeholder="City, State">
+    </label>
+
+    <label class="sc-area">
+      <span>About my path</span>
+      <textarea name="bio" placeholder="What kind of work are you looking for? What support would help most?">{{ profile.bio or '' }}</textarea>
+    </label>
+
+    <div class="skill-checks" aria-label="Career skills">
+      <strong>Support I want</strong>
+      {% for skill in skills %}
+        <label>
+          <input type="checkbox" name="skills" value="{{ skill }}" {% if skill in selected_skills %}checked{% endif %}>
+          {{ skill }}
+        </label>
+      {% endfor %}
+    </div>
+
+    <label class="sc-field">
+      <span>Update profile photo</span>
+      <input name="profile_pic" type="file" accept="image/*">
+    </label>
+
+    <div class="edit-actions">
+      <button class="sc-button" type="submit">Save Profile</button>
+      <a class="sc-button" href="{{ url_for('second_chance_profile') }}">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
