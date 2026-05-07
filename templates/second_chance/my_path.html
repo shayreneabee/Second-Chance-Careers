@@ -40,10 +40,12 @@
   .resource-strip-card {
     background: rgba(255, 255, 255, 0.78);
     border: 1px solid var(--sc-line);
-    box-shadow: 0 10px 24px rgba(5, 55, 52, 0.10);
+    border-radius: var(--sc-radius);
+    box-shadow: var(--sc-lift);
   }
 
   .summary-card {
+    min-height: 86px;
     padding: 1rem;
   }
 
@@ -96,6 +98,7 @@
     grid-template-columns: 32px 1fr;
     gap: 0.75rem;
     align-items: start;
+    padding: 0.45rem 0;
   }
 
   .path-checklist input {
@@ -148,7 +151,17 @@
   }
 
   .help-card {
+    min-height: 246px;
+    display: flex;
+    flex-direction: column;
     padding: 1rem;
+    transition: transform var(--sc-ease), box-shadow var(--sc-ease), background var(--sc-ease);
+  }
+
+  .help-card:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: var(--sc-lift-strong);
   }
 
   .help-card small {
@@ -168,6 +181,10 @@
   .help-card p {
     margin: 0 0 0.9rem;
     color: #42615e;
+  }
+
+  .help-card .sc-button {
+    margin-top: auto;
   }
 
   .resource-strip {
@@ -207,6 +224,8 @@
     background: var(--sc-teal);
     color: var(--sc-cream);
     text-align: center;
+    border-radius: var(--sc-radius);
+    box-shadow: var(--sc-lift);
   }
 
   .start-panel h2 {
