@@ -145,12 +145,12 @@
 {% for group in groups_to_show %}
   <section class="resource-grid" aria-label="{{ group.title }}">
     {% for item in group["items"] %}
-      <a class="resource-card" href="{{ item.url }}" target="_blank" rel="noopener noreferrer">
+      <a class="resource-card" href="{{ url_for('second_chance_open_resource', group_slug=group.slug, item_index=loop.index0) }}">
         <span class="resource-icon">{{ item.icon }}</span>
         <span>
           <h2>{{ item.label }}</h2>
           <p>{{ item.note }}</p>
-          <span class="resource-link">Open resource ↗</span>
+          <span class="resource-link">Open {{ item.label }} ↗</span>
         </span>
       </a>
     {% endfor %}

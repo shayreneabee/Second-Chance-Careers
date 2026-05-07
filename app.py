@@ -720,6 +720,16 @@ def second_chance_resource_group(slug):
     )
 
 
+def second_chance_resource_item(group_slug, item_index):
+    group = second_chance_resource_group(group_slug)
+    if not group:
+        return None
+    items = group.get("items", [])
+    if item_index < 0 or item_index >= len(items):
+        return None
+    return items[item_index]
+
+
 def get_performances(profile_id=None):
     sql = "SELECT * FROM performances"
     params = []
@@ -851,6 +861,15 @@ def second_chance_resource_page(slug):
         groups=SECOND_CHANCE_RESOURCE_GROUPS,
         active_group=group,
     )
+
+
+@app.route("/second-chance/resources/<group_slug>/open/<int:item_index>")
+def second_chance_open_resource(group_slug, item_index):
+    item = second_chance_resource_item(group_slug, item_index)
+    if not item:
+        flash("That resource link was not found.")
+        return redirect(url_for("second_chance_resources"))
+    return redirect(item["url"])
 
 
 @app.route("/second-chance/search")
