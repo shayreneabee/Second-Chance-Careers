@@ -1576,19 +1576,7 @@ def second_chance_edit_profile():
 
 @app.route("/")
 def home():
-    q = request.args.get("q", "").strip()
-    role = request.args.get("role", "").strip()
-    genre = request.args.get("genre", "").strip()
-    city = request.args.get("city", "").strip()
-    creators = search_profiles(q, role, genre, city)
-    return render_template(
-        "index.html",
-        creators=creators,
-        q=q,
-        role_filter=role,
-        genre_filter=genre,
-        city_filter=city,
-    )
+    return second_chance_home()
 
 
 @app.route("/healthz")
