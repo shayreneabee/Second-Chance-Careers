@@ -31,11 +31,11 @@ DB_PATH = Path(os.getenv("DATABASE_PATH", INSTANCE_DIR / "find_the_beat_v2.db"))
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 ALLOWED_VIDEO_EXTENSIONS = {"mp4", "mov", "m4v", "webm"}
-BRENT_CO_URL = os.getenv("BRENT_CO_URL", "https://brentco.netlify.app/")
-FIND_THE_BEAT_URL = os.getenv("FIND_THE_BEAT_URL", "https://findthebeatmusic.com")
+BRENT_CO_URL = os.getenv("BRENT_CO_URL", "https://brent-and-co.onrender.com/")
+FIND_THE_BEAT_URL = os.getenv("FIND_THE_BEAT_URL", "https://find-the-beat-2.onrender.com")
 SECOND_CHANCE_URL = os.getenv(
     "SECOND_CHANCE_URL",
-    "https://brentco.netlify.app/second-chance",
+    "https://second-chance-careers.onrender.com",
 )
 PASSWORD_RESET_SECONDS = int(os.getenv("PASSWORD_RESET_SECONDS", "3600"))
 
