@@ -139,11 +139,6 @@ SECOND_CHANCE_CATEGORIES = [
                 "url": "https://www.ncsbn.org/nursing-regulation/licensure/nurse-licensure-guidance.page",
             },
             {
-                "label": "State ID and DMV",
-                "note": "Find state motor vehicle agencies for IDs, licenses, and records.",
-                "url": "https://www.usa.gov/state-motor-vehicle-services",
-            },
-            {
                 "label": "Healthcare license steps",
                 "note": "State-by-state guidance for healthcare and nursing license requirements.",
                 "url": "https://www.ncsbn.org/nursing-regulation/licensure/nurse-licensure-guidance.page",
