@@ -1,8 +1,0 @@
-cd ~/Projects/find-the-beat-app
-source .venv/bin/activate
-
-# optional but helpful: clean python cache so old imports don't linger
-find . -type d -name "__pycache__" -exec rm -rf {} +
-
-# stop any old running flask (if needed)
-# ctrl + c in the terminal window that was running flask

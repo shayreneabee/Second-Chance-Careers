@@ -1,9 +1,0 @@
-<form method="POST" action="{{ url_for('set_active_profile') }}" class="active-profile">
-  <select name="profile_id" onchange="this.form.submit()">
-    <option value="">Set Active Profile…</option>
-    {% for p in Profile.query.order_by(Profile.created_at.desc()).all() %}
-      <option value="{{ p.id }}">{{ p.name }}</option>
-    {% endfor %}
-  </select>
-</form>
-

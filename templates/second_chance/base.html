@@ -203,6 +203,44 @@
       box-shadow: 0 8px 18px rgba(1, 41, 39, 0.16);
     }
 
+    .ecosystem-footer {
+      display: grid;
+      gap: 0.9rem;
+      padding: 1.25rem 1rem 6.3rem;
+      color: var(--sc-muted);
+      text-align: center;
+      font-weight: 800;
+    }
+
+    .ecosystem-dock {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.65rem;
+    }
+
+    .ecosystem-dock a {
+      width: 58px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(4, 69, 67, 0.12);
+      border-radius: 18px;
+      background: rgba(246, 255, 252, 0.8);
+      color: var(--sc-text);
+      font-size: 0.72rem;
+      font-weight: 950;
+      text-transform: uppercase;
+      box-shadow: var(--sc-lift);
+      transition: transform var(--sc-ease), box-shadow var(--sc-ease), background var(--sc-ease);
+    }
+
+    .ecosystem-dock a:hover {
+      transform: translateY(-2px);
+      background: rgba(242, 255, 168, 0.72);
+      box-shadow: var(--sc-shadow);
+    }
+
     .sc-flashes {
       display: grid;
       gap: 0.5rem;
@@ -243,6 +281,7 @@
       .sc-desktop-nav { display: flex; }
       .sc-bottom { display: none; }
       .sc-main { padding-bottom: 0; }
+      .ecosystem-footer { padding-bottom: 2rem; }
     }
 
     /* Brent & Co ecosystem visual system */
@@ -376,6 +415,16 @@
       <a href="{{ url_for('second_chance_profile') }}" aria-label="Profile">♙</a>
       <a class="active" href="{{ url_for('second_chance_my_path') }}" aria-label="My Path">✓</a>
     </nav>
+    <footer class="ecosystem-footer" aria-label="Brent and Co ecosystem links">
+      <nav class="ecosystem-dock" aria-label="Brent and Co ecosystem quick links">
+        <a href="https://brentandco.org/" rel="noopener" aria-label="Brent & Co homepage">BC</a>
+        <a href="https://letscookyall.com/" rel="noopener" aria-label="Let's Cook Y'all">LC</a>
+        <a href="https://findthebeatmusic.com/" rel="noopener" aria-label="Find the Beat">FTB</a>
+        <a href="https://beutravel.org/" rel="noopener" aria-label="BEU">BEU</a>
+        <a href="https://secondchancecareers.org/" rel="noopener" aria-label="Second Chance Careers">SC</a>
+      </nav>
+      <span>A Brent &amp; Co. experience</span>
+    </footer>
   </div>
 </body>
 </html>
