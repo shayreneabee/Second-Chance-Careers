@@ -1,0 +1,170 @@
+{% extends "second_chance/base.html" %}
+
+{% block title %}Resources | Second Chance Careers{% endblock %}
+
+{% block head %}
+<style>
+  .resource-hero {
+    padding: 1.45rem 1rem;
+    background: rgba(242, 255, 168, 0.38);
+  }
+
+  .resource-hero h1 {
+    margin: 0;
+    color: var(--sc-teal-dark);
+    font-size: clamp(2.25rem, 8vw, 4rem);
+    line-height: 1;
+    font-weight: 400;
+  }
+
+  .resource-hero p {
+    margin: 0.75rem 0 0;
+    max-width: 720px;
+    color: #294c49;
+  }
+
+  .resource-tabs {
+    display: flex;
+    gap: 0.6rem;
+    overflow-x: auto;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.42);
+    scroll-padding: 1rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .resource-tab {
+    flex: 0 0 auto;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.55rem 0.85rem;
+    border: 1px solid var(--sc-line);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.78);
+    color: var(--sc-teal-dark);
+    font-weight: 800;
+    box-shadow: 0 6px 14px rgba(5, 55, 52, 0.06);
+    transition: transform var(--sc-ease), background var(--sc-ease), color var(--sc-ease), box-shadow var(--sc-ease);
+  }
+
+  .resource-tab:hover,
+  .resource-tab.active {
+    transform: translateY(-1px);
+    background: var(--sc-teal);
+    color: var(--sc-cream);
+  }
+
+  .resource-grid {
+    display: grid;
+    gap: 0.9rem;
+    padding: 1rem 1rem 2rem;
+  }
+
+  .resource-card {
+    display: grid;
+    grid-template-columns: 54px 1fr;
+    gap: 0.85rem;
+    align-items: start;
+    min-height: 148px;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.80);
+    border: 1px solid var(--sc-line);
+    border-radius: var(--sc-radius);
+    box-shadow: var(--sc-lift);
+    transition: transform var(--sc-ease), box-shadow var(--sc-ease), background var(--sc-ease);
+  }
+
+  .resource-card:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: var(--sc-lift-strong);
+  }
+
+  .resource-icon {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    background: var(--sc-teal);
+    color: var(--sc-cream);
+    font-weight: 900;
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.18);
+  }
+
+  .resource-card h2 {
+    margin: 0;
+    color: var(--sc-teal-dark);
+    font-size: 1.35rem;
+    line-height: 1.05;
+  }
+
+  .resource-card p {
+    margin: 0.35rem 0 0.65rem;
+    color: #42615e;
+  }
+
+  .resource-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--sc-teal-dark);
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-size: 0.84rem;
+  }
+
+  @media (min-width: 760px) {
+    .resource-hero {
+      padding: 2.4rem 2rem;
+    }
+
+    .resource-tabs {
+      padding: 1rem 2rem;
+      flex-wrap: wrap;
+      overflow: visible;
+    }
+
+    .resource-grid {
+      grid-template-columns: repeat(2, 1fr);
+      padding: 2rem;
+      gap: 1rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set groups_to_show = [active_group] if active_group else groups %}
+
+<section class="resource-hero">
+  <h1>{{ active_group.title if active_group else "Resource Library" }}</h1>
+  <p>
+    {{ active_group.intro if active_group else "Open trusted job, workforce, document, interview, transportation, and support resources in a clean, organized place." }}
+  </p>
+</section>
+
+<nav class="resource-tabs" aria-label="Resource categories">
+  <a class="resource-tab {% if not active_group %}active{% endif %}" href="{{ url_for('second_chance_resources') }}">All</a>
+  {% for group in groups %}
+    <a class="resource-tab {% if active_group and active_group.slug == group.slug %}active{% endif %}" href="{{ url_for('second_chance_resource_page', slug=group.slug) }}">{{ group.title }}</a>
+  {% endfor %}
+</nav>
+
+{% for group in groups_to_show %}
+  <section class="resource-grid" aria-label="{{ group.title }}">
+    {% for item in group["items"] %}
+      <a class="resource-card" href="{{ url_for('second_chance_open_resource', group_slug=group.slug, item_index=loop.index0) }}">
+        <span class="resource-icon">{{ item.icon }}</span>
+        <span>
+          <h2>{{ item.label }}</h2>
+          <p>{{ item.note }}</p>
+          <span class="resource-link">Open {{ item.label }} ↗</span>
+        </span>
+      </a>
+    {% endfor %}
+  </section>
+{% endfor %}
+{% endblock %}

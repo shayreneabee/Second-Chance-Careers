@@ -1,0 +1,337 @@
+{% extends "second_chance/base.html" %}
+
+{% block title %}Second Chance Careers{% endblock %}
+
+{% block head %}
+<style>
+  .sc-hero {
+    min-height: clamp(250px, 38vw, 430px);
+    display: grid;
+    align-items: end;
+    height: clamp(170px, 29vw, 270px);
+    background:
+      linear-gradient(180deg, rgba(3, 24, 24, 0.10), rgba(3, 24, 24, 0.74)),
+      url("{{ url_for('static', filename='second_chance/welcome-crop.png') }}") center / cover no-repeat;
+    border-bottom: 8px solid #050505;
+  }
+
+  .hero-message {
+    max-width: 780px;
+    padding: 1.1rem 1rem 1.35rem;
+    color: white;
+  }
+
+  .hero-message h1 {
+    margin: 0;
+    color: var(--sc-cream);
+    font-size: clamp(2rem, 7vw, 4.4rem);
+    line-height: 0.98;
+    letter-spacing: 0.02em;
+    font-weight: 400;
+  }
+
+  .hero-message p {
+    margin: 0.85rem 0 0;
+    max-width: 620px;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: clamp(1rem, 2vw, 1.2rem);
+  }
+
+  .warm-intro {
+    display: grid;
+    gap: 1rem;
+    padding: 1.35rem 1rem;
+    background: rgba(242, 255, 168, 0.36);
+    border-bottom: 1px solid rgba(15, 111, 107, 0.12);
+  }
+
+  .warm-intro h2 {
+    margin: 0;
+    color: var(--sc-teal-dark);
+    font-size: clamp(1.9rem, 5vw, 3rem);
+    line-height: 1.02;
+    font-weight: 400;
+  }
+
+  .warm-intro p {
+    margin: 0;
+    color: #214946;
+    font-size: 1rem;
+  }
+
+  .category-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 0.95rem;
+  }
+
+  .category-card {
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.55);
+    box-shadow: 0 8px 18px rgba(5, 55, 52, 0.12);
+  }
+
+  .category-card strong {
+    display: block;
+    min-height: 48px;
+    padding: 0.5rem;
+    background: var(--sc-teal);
+    color: var(--sc-cream);
+    text-align: center;
+    font-size: 1.55rem;
+    line-height: 1.1;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+  }
+
+  .category-card img {
+    width: 100%;
+    height: 190px;
+    object-fit: cover;
+  }
+
+  .search-heading {
+    margin-top: 0.25rem;
+  }
+
+  .quick-search {
+    display: grid;
+    gap: 1.1rem;
+    padding: 1.45rem 1.1rem 2.5rem;
+  }
+
+  .quick-item {
+    display: grid;
+    justify-items: center;
+    gap: 0.55rem;
+    text-align: center;
+  }
+
+  .quick-item h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    line-height: 1.06;
+    font-weight: 400;
+  }
+
+  .support-section {
+    padding: 1.15rem 1rem 1.6rem;
+  }
+
+  .support-heading {
+    margin: 0 0 1rem;
+    color: var(--sc-teal-dark);
+    text-align: center;
+    font-size: clamp(2rem, 6vw, 3.2rem);
+    line-height: 1;
+    font-weight: 400;
+  }
+
+  .feature-grid {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .feature-card,
+  .path-card {
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid var(--sc-line);
+    box-shadow: 0 10px 24px rgba(5, 55, 52, 0.10);
+  }
+
+  .feature-card {
+    padding: 1rem;
+  }
+
+  .feature-card h3 {
+    margin: 0 0 0.4rem;
+    color: var(--sc-teal-dark);
+    font-size: 1.35rem;
+    line-height: 1.05;
+    font-weight: 700;
+  }
+
+  .feature-card p {
+    margin: 0;
+    color: #294c49;
+  }
+
+  .path-card {
+    margin: 1.2rem 1rem 1.8rem;
+    padding: 1.1rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(242, 255, 168, 0.46));
+  }
+
+  .path-card h2 {
+    margin: 0 0 0.75rem;
+    color: var(--sc-teal-dark);
+    font-size: 1.65rem;
+    line-height: 1.05;
+    font-weight: 400;
+  }
+
+  .path-list {
+    display: grid;
+    gap: 0.55rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .path-list li {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    align-items: center;
+    gap: 0.6rem;
+    color: #173f3c;
+    font-weight: 700;
+  }
+
+  .path-list span {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--sc-teal);
+    color: var(--sc-cream);
+    font-size: 0.9rem;
+  }
+
+  .encouragement {
+    margin: 0 1rem 1.6rem;
+    padding: 1.25rem 1rem;
+    background: var(--sc-teal);
+    color: var(--sc-cream);
+    text-align: center;
+  }
+
+  .encouragement h2 {
+    margin: 0;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    line-height: 1.02;
+    font-weight: 400;
+  }
+
+  .encouragement p {
+    margin: 0.65rem auto 1rem;
+    max-width: 680px;
+    color: rgba(242, 255, 168, 0.88);
+  }
+
+  @media (min-width: 760px) {
+    .warm-intro {
+      grid-template-columns: 0.85fr 1.15fr;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .category-row {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 1.35rem;
+    }
+
+    .category-card strong {
+      font-size: clamp(1rem, 1.8vw, 1.55rem);
+    }
+
+    .category-card img {
+      height: 174px;
+    }
+
+    .quick-search {
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1rem;
+    }
+
+    .support-section {
+      padding: 2.2rem;
+    }
+
+    .feature-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .path-card {
+      margin: 0 2rem 2rem;
+    }
+
+    .path-list {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .encouragement {
+      margin: 0 2rem 2.5rem;
+      padding: 2.2rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="sc-hero" aria-label="Welcome">
+  <div class="hero-message">
+    <h1>A real path forward starts here.</h1>
+    <p>Second Chance Careers helps people rebuild with dignity: job readiness, documents, resumes, interviews, training paths, and opportunities that meet people where they are.</p>
+  </div>
+</section>
+
+<section class="warm-intro">
+  <h2>You are not your hardest chapter.</h2>
+  <p>
+    This space is for people who are ready for support, structure, and another door to open.
+    We are building tools that make the next step clearer, from basic documents to job applications.
+  </p>
+</section>
+
+<section class="category-row" aria-label="Career paths">
+  {% for category in categories %}
+    <a class="category-card" href="{{ url_for('second_chance_category_page', slug=category.slug) }}">
+      <strong>{{ category.title }}</strong>
+      <img src="{{ url_for('static', filename='second_chance/' ~ category.image) }}" alt="">
+    </a>
+  {% endfor %}
+</section>
+
+<section class="support-section" aria-label="How Second Chance helps">
+  <h2 class="support-heading">Support for the whole job journey</h2>
+  <div class="feature-grid">
+    {% for feature in features %}
+      <article class="feature-card">
+        <h3>{{ feature.title }}</h3>
+        <p>{{ feature.body }}</p>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="path-card" aria-label="Job readiness checklist">
+  <h2>Your job readiness path</h2>
+  <ul class="path-list">
+    {% for item in checklist %}
+      <li><span>{{ loop.index }}</span>{{ item.title }}</li>
+    {% endfor %}
+  </ul>
+  <div style="margin-top:1rem;">
+    <a class="sc-button" href="{{ url_for('second_chance_my_path') }}">Open My Path</a>
+  </div>
+</section>
+
+<div class="sc-band search-heading">Search</div>
+
+<section class="quick-search" aria-label="Search resources">
+  {% for item in search_items %}
+    <article class="quick-item">
+      <h3>{{ item.label }}</h3>
+      <a class="sc-button" href="{{ url_for('second_chance_resource_page', slug=item.resource_slug) }}"><span class="plus">+</span>Search</a>
+    </article>
+  {% endfor %}
+</section>
+
+<section class="encouragement">
+  <h2>Built for second chances, not second thoughts.</h2>
+  <p>People need more than a job link. They need a plan, encouragement, and a way to show employers they are ready.</p>
+  <a class="sc-button" href="{{ url_for('second_chance_my_path') }}">Start Your Path</a>
+</section>
+{% endblock %}

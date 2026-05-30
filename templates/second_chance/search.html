@@ -1,0 +1,195 @@
+{% extends "second_chance/base.html" %}
+
+{% block title %}Search | Second Chance Careers{% endblock %}
+
+{% block head %}
+<style>
+  .search-hero {
+    height: 196px;
+    background: url("{{ url_for('static', filename='second_chance/road-crop.png') }}") center / cover no-repeat;
+  }
+
+  .search-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.05rem 1.25rem;
+    padding: 3rem 1rem 4.6rem;
+  }
+
+  .search-card {
+    display: grid;
+    justify-items: center;
+    gap: 0.55rem;
+    text-align: center;
+  }
+
+  .search-card h2 {
+    min-height: 48px;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    font-size: 1.35rem;
+    line-height: 1.05;
+    font-weight: 400;
+  }
+
+  .search-card .sc-button {
+    min-width: min(168px, 100%);
+  }
+
+  .job-finder {
+    padding: 1rem;
+    background: rgba(242, 255, 168, 0.34);
+    border-bottom: 1px solid rgba(15, 111, 107, 0.12);
+  }
+
+  .job-finder h2 {
+    margin: 0 0 0.55rem;
+    color: var(--sc-teal-dark);
+    font-size: clamp(1.9rem, 6vw, 3rem);
+    line-height: 1.02;
+    font-weight: 400;
+  }
+
+  .job-finder p {
+    margin: 0 0 1rem;
+    color: #294c49;
+  }
+
+  .finder-form {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .finder-form input {
+    min-height: 50px;
+    width: 100%;
+    border: 1px solid var(--sc-line);
+    padding: 0 1rem;
+    background: rgba(255, 255, 255, 0.86);
+    color: var(--sc-text);
+  }
+
+  .job-help-results {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem;
+  }
+
+  .job-result {
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid var(--sc-line);
+    box-shadow: 0 10px 24px rgba(5, 55, 52, 0.10);
+  }
+
+  .job-result small {
+    color: var(--sc-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 800;
+  }
+
+  .job-result h3 {
+    margin: 0.25rem 0 0.45rem;
+    color: var(--sc-teal-dark);
+    font-size: 1.35rem;
+    line-height: 1.05;
+  }
+
+  .job-result p {
+    margin: 0 0 0.85rem;
+    color: #42615e;
+  }
+
+  .resource-row {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0 1rem 1.5rem;
+  }
+
+  .resource-row a {
+    padding: 0.85rem 1rem;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid var(--sc-line);
+    color: var(--sc-teal-dark);
+    font-weight: 900;
+    transition: 0.18s ease;
+  }
+
+  .resource-row a:hover {
+    transform: translateY(-2px);
+    background: rgba(242, 255, 168, 0.58);
+  }
+
+  @media (min-width: 760px) {
+    .search-hero {
+      height: 300px;
+    }
+
+    .search-grid {
+      grid-template-columns: repeat(4, 1fr);
+      padding: 4rem 2rem;
+    }
+
+    .job-finder {
+      padding: 2rem;
+    }
+
+    .finder-form {
+      grid-template-columns: 1fr auto;
+      align-items: center;
+    }
+
+    .job-help-results {
+      grid-template-columns: repeat(4, 1fr);
+      padding: 2rem;
+    }
+
+    .resource-row {
+      grid-template-columns: repeat(5, 1fr);
+      padding: 0 2rem 2rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="search-hero"></section>
+<div class="sc-band">Search</div>
+
+<section class="job-finder">
+  <h2>Find a job path that fits where you are now.</h2>
+  <p>Search by role, industry, skill, training path, license need, or remote work. This is designed to guide people toward the next doable step.</p>
+  <form class="finder-form" method="GET" action="{{ url_for('second_chance_search') }}">
+    <input name="q" value="{{ q }}" placeholder="Search jobs, training, documents, or skills">
+    <button class="sc-button" type="submit"><span class="plus">+</span>Search</button>
+  </form>
+</section>
+
+<section class="job-help-results" aria-label="Job help paths">
+  {% for help in job_help %}
+    <article class="job-result">
+      <small>{{ help.type }}</small>
+      <h3>{{ help.title }}</h3>
+      <p>{{ help.body }}</p>
+      <a class="sc-button" href="{{ url_for('second_chance_resource_page', slug=help.resource_slug) }}">{{ help.cta }}</a>
+    </article>
+  {% endfor %}
+</section>
+
+<section class="resource-row" aria-label="Resource categories">
+  {% for group in resource_groups %}
+    <a href="{{ url_for('second_chance_resource_page', slug=group.slug) }}">{{ group.title }} ↗</a>
+  {% endfor %}
+</section>
+
+<section class="search-grid">
+  {% for item in search_items %}
+    <article class="search-card">
+      <h2>{{ item.label }}</h2>
+      <a class="sc-button" href="{{ url_for('second_chance_resource_page', slug=item.resource_slug) }}"><span class="plus">+</span>Search</a>
+    </article>
+  {% endfor %}
+</section>
+{% endblock %}
