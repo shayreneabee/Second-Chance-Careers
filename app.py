@@ -40,10 +40,18 @@ SECOND_CHANCE_URL = os.getenv(
 )
 PASSWORD_RESET_SECONDS = int(os.getenv("PASSWORD_RESET_SECONDS", "3600"))
 AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
-OWNER_EMAIL = os.getenv("BRENT_OWNER_EMAIL", "shalanda.brent@gmail.com").strip().lower()
-OWNER_DISPLAY_NAME = os.getenv("BRENT_OWNER_DISPLAY_NAME", "Shay / Brent & Co Founder")
 OWNER_AUTH_PROVIDER = os.getenv("BRENT_OWNER_AUTH_PROVIDER", "brent-core")
 OWNER_INITIAL_PASSWORD = os.getenv("BRENT_OWNER_INITIAL_PASSWORD", "")
+FOUNDER_PROFILES = [
+    {
+        "email": os.getenv("BRENT_OWNER_EMAIL", "shalanda.brent@gmail.com").strip().lower(),
+        "display_name": os.getenv("BRENT_OWNER_DISPLAY_NAME", "Shay / Brent & Co Founder"),
+    },
+    {
+        "email": os.getenv("BRENT_COFOUNDER_EMAIL", "jerod.l.cotton@gmail.com").strip().lower(),
+        "display_name": os.getenv("BRENT_COFOUNDER_DISPLAY_NAME", "Jerod / Brent & Co Founder"),
+    },
+]
 OWNER_BIO = (
     "Official Brent & Co founder profile for ecosystem updates, career support, "
     "and community connection."
@@ -949,25 +957,53 @@ def create_message(sender_id, recipient_id, body):
 
 
 def seed_founder_profile():
-    if not OWNER_EMAIL:
-        return
     with get_db() as conn:
-        existing = conn.execute(
-            "SELECT * FROM users WHERE lower(email) = lower(?)",
-            (OWNER_EMAIL,),
-        ).fetchone()
-        if existing:
+        for founder in FOUNDER_PROFILES:
+            email = founder["email"]
+            if not email:
+                continue
+            existing = conn.execute(
+                "SELECT * FROM users WHERE lower(email) = lower(?)",
+                (email,),
+            ).fetchone()
+            if existing:
+                conn.execute(
+                    """
+                    UPDATE users
+                    SET display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
+                        tags_csv = ?, instrument = ?, services_csv = ?,
+                        brent_account_id = ?, auth_provider = ?,
+                        is_admin = 1, is_founder = 1, is_verified = 1
+                    WHERE id = ?
+                    """,
+                    (
+                        founder["display_name"],
+                        "admin",
+                        "Brent & Co Ecosystem",
+                        "Brent & Co",
+                        OWNER_BIO,
+                        "Founder, Brent & Co, Verified",
+                        "Ecosystem Builder",
+                        "Career support, community connection, second chances",
+                        brent_account_id(email),
+                        OWNER_AUTH_PROVIDER,
+                        existing["id"],
+                    ),
+                )
+                continue
             conn.execute(
                 """
-                UPDATE users
-                SET display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
-                    tags_csv = ?, instrument = ?, services_csv = ?,
-                    brent_account_id = ?, auth_provider = ?,
-                    is_admin = 1, is_founder = 1, is_verified = 1
-                WHERE id = ?
+                INSERT INTO users (
+                    email, password_hash, display_name, role, genre, city, bio,
+                    tags_csv, instrument, services_csv, brent_account_id,
+                    auth_provider, is_admin, is_founder, is_verified
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
                 """,
                 (
-                    OWNER_DISPLAY_NAME,
+                    email,
+                    generate_password_hash(OWNER_INITIAL_PASSWORD or secrets.token_urlsafe(32)),
+                    founder["display_name"],
                     "admin",
                     "Brent & Co Ecosystem",
                     "Brent & Co",
@@ -975,36 +1011,10 @@ def seed_founder_profile():
                     "Founder, Brent & Co, Verified",
                     "Ecosystem Builder",
                     "Career support, community connection, second chances",
-                    brent_account_id(OWNER_EMAIL),
+                    brent_account_id(email),
                     OWNER_AUTH_PROVIDER,
-                    existing["id"],
                 ),
             )
-            return
-        conn.execute(
-            """
-            INSERT INTO users (
-                email, password_hash, display_name, role, genre, city, bio,
-                tags_csv, instrument, services_csv, brent_account_id,
-                auth_provider, is_admin, is_founder, is_verified
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
-            """,
-            (
-                OWNER_EMAIL,
-                generate_password_hash(OWNER_INITIAL_PASSWORD or secrets.token_urlsafe(32)),
-                OWNER_DISPLAY_NAME,
-                "admin",
-                "Brent & Co Ecosystem",
-                "Brent & Co",
-                OWNER_BIO,
-                "Founder, Brent & Co, Verified",
-                "Ecosystem Builder",
-                "Career support, community connection, second chances",
-                brent_account_id(OWNER_EMAIL),
-                OWNER_AUTH_PROVIDER,
-            ),
-        )
 
 
 def row_to_profile(row):
