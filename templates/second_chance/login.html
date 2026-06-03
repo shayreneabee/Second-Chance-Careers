@@ -106,6 +106,12 @@
     </label>
 
     <button class="sc-button login-submit" type="submit">Sign in</button>
+    <div class="oauth-prep" aria-label="Future social sign in">
+      <button type="button" disabled>Continue with Google</button>
+      <button type="button" disabled>Continue with Apple</button>
+      <button type="button" disabled>Continue with Email</button>
+      <button type="button" disabled>Facebook later</button>
+    </div>
     <div class="login-link"><a href="{{ url_for('second_chance_forgot_password') }}">Forgot password?</a></div>
     <div class="login-link">Need an account? <a href="{{ url_for('second_chance_signup') }}">Sign up</a></div>
   </form>

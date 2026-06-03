@@ -289,9 +289,9 @@
     {% if profile and profile.profile_pic %}
       <img class="profile-photo" src="{{ url_for('uploaded_file', filename=profile.profile_pic) }}" alt="{{ profile.display_name }}">
     {% elif profile %}
-      <div class="profile-initial">{{ profile.display_name[:1] }}</div>
+      <div class="profile-initial">{{ profile.initials }}</div>
     {% else %}
-      <img class="profile-photo" src="{{ url_for('static', filename='second_chance/craig-crop.png') }}" alt="">
+      <div class="profile-initial">SC</div>
     {% endif %}
     <div class="profile-meta">
       {% if profile.city %}

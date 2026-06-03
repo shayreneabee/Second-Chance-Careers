@@ -42,10 +42,19 @@ PASSWORD_RESET_SECONDS = int(os.getenv("PASSWORD_RESET_SECONDS", "3600"))
 AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
 OWNER_AUTH_PROVIDER = os.getenv("BRENT_OWNER_AUTH_PROVIDER", "brent-core")
 OWNER_INITIAL_PASSWORD = os.getenv("BRENT_OWNER_INITIAL_PASSWORD", "")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+APPLE_CLIENT_ID = os.getenv("APPLE_CLIENT_ID", "")
+APPLE_TEAM_ID = os.getenv("APPLE_TEAM_ID", "")
+APPLE_KEY_ID = os.getenv("APPLE_KEY_ID", "")
+APPLE_PRIVATE_KEY = os.getenv("APPLE_PRIVATE_KEY", "")
+FACEBOOK_CLIENT_ID = os.getenv("FACEBOOK_CLIENT_ID", "")
+FACEBOOK_CLIENT_SECRET = os.getenv("FACEBOOK_CLIENT_SECRET", "")
 FOUNDER_PROFILES = [
     {
         "email": os.getenv("BRENT_OWNER_EMAIL", "shalanda.brent@gmail.com").strip().lower(),
-        "display_name": os.getenv("BRENT_OWNER_DISPLAY_NAME", "Shay / Brent & Co Founder"),
+        "full_name": os.getenv("BRENT_OWNER_FULL_NAME", "Shalanda Brent"),
+        "display_name": os.getenv("BRENT_OWNER_DISPLAY_NAME", "Shay"),
     },
     {
         "email": os.getenv("BRENT_COFOUNDER_EMAIL", "jerod.l.cotton@gmail.com").strip().lower(),
@@ -597,21 +606,30 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
+                full_name TEXT DEFAULT '',
                 display_name TEXT DEFAULT '',
+                username TEXT DEFAULT '',
                 role TEXT DEFAULT '',
                 genre TEXT DEFAULT '',
                 city TEXT DEFAULT '',
+                state TEXT DEFAULT '',
+                country TEXT DEFAULT '',
                 bio TEXT DEFAULT '',
                 tags_csv TEXT DEFAULT '',
                 instrument TEXT DEFAULT '',
                 services_csv TEXT DEFAULT '',
+                avatar_url TEXT DEFAULT '',
                 profile_pic TEXT DEFAULT '',
                 profile_video TEXT DEFAULT '',
                 brent_account_id TEXT DEFAULT '',
+                provider TEXT DEFAULT 'local',
+                provider_id TEXT DEFAULT '',
                 auth_provider TEXT DEFAULT 'local',
                 is_admin INTEGER DEFAULT 0,
                 is_founder INTEGER DEFAULT 0,
-                is_verified INTEGER DEFAULT 0
+                is_verified INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
@@ -689,15 +707,24 @@ def init_db():
             row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()
         }
         for column, definition in {
+            "full_name": "TEXT DEFAULT ''",
+            "username": "TEXT DEFAULT ''",
+            "state": "TEXT DEFAULT ''",
+            "country": "TEXT DEFAULT ''",
+            "avatar_url": "TEXT DEFAULT ''",
             "tags_csv": "TEXT DEFAULT ''",
             "instrument": "TEXT DEFAULT ''",
             "services_csv": "TEXT DEFAULT ''",
             "profile_video": "TEXT DEFAULT ''",
             "brent_account_id": "TEXT DEFAULT ''",
+            "provider": "TEXT DEFAULT 'local'",
+            "provider_id": "TEXT DEFAULT ''",
             "auth_provider": "TEXT DEFAULT 'local'",
             "is_admin": "INTEGER DEFAULT 0",
             "is_founder": "INTEGER DEFAULT 0",
             "is_verified": "INTEGER DEFAULT 0",
+            "created_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
+            "updated_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
         }.items():
             if column not in existing_columns:
                 conn.execute(f"ALTER TABLE users ADD COLUMN {column} {definition}")
@@ -795,14 +822,16 @@ def create_user(email, password, fields, profile_pic):
         cursor = conn.execute(
             """
             INSERT INTO users (
-                email, password_hash, display_name, role, genre, city, bio,
-                tags_csv, instrument, services_csv, profile_pic
+                email, password_hash, full_name, display_name, role, genre, city, bio,
+                tags_csv, instrument, services_csv, avatar_url, profile_pic,
+                brent_account_id, provider, auth_provider, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """,
             (
                 email,
                 generate_password_hash(password),
+                fields["display_name"],
                 fields["display_name"],
                 fields["role"],
                 fields["genre"],
@@ -812,6 +841,10 @@ def create_user(email, password, fields, profile_pic):
                 fields["instrument"],
                 fields["services_csv"],
                 profile_pic,
+                profile_pic,
+                brent_account_id(email),
+                AUTH_PROVIDER,
+                AUTH_PROVIDER,
             ),
         )
         return cursor.lastrowid
@@ -822,12 +855,15 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
         conn.execute(
             """
             UPDATE users
-            SET display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
+            SET full_name = COALESCE(NULLIF(full_name, ''), ?),
+                display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
                 tags_csv = ?, instrument = ?, services_csv = ?,
-                profile_pic = ?, profile_video = ?
+                avatar_url = ?, profile_pic = ?, profile_video = ?,
+                updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
             """,
             (
+                fields["display_name"],
                 fields["display_name"],
                 fields["role"],
                 fields["genre"],
@@ -836,6 +872,7 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
                 fields["tags_csv"],
                 fields["instrument"],
                 fields["services_csv"],
+                profile_pic,
                 profile_pic,
                 profile_video,
                 user_id,
@@ -970,13 +1007,15 @@ def seed_founder_profile():
                 conn.execute(
                     """
                     UPDATE users
-                    SET display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
+                    SET full_name = ?, display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
                         tags_csv = ?, instrument = ?, services_csv = ?,
-                        brent_account_id = ?, auth_provider = ?,
-                        is_admin = 1, is_founder = 1, is_verified = 1
+                        brent_account_id = ?, provider = ?, auth_provider = ?,
+                        is_admin = 1, is_founder = 1, is_verified = 1,
+                        updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
                     """,
                     (
+                        founder["full_name"],
                         founder["display_name"],
                         "admin",
                         "Brent & Co Ecosystem",
@@ -987,6 +1026,7 @@ def seed_founder_profile():
                         "Career support, community connection, second chances",
                         brent_account_id(email),
                         OWNER_AUTH_PROVIDER,
+                        OWNER_AUTH_PROVIDER,
                         existing["id"],
                     ),
                 )
@@ -994,15 +1034,16 @@ def seed_founder_profile():
             conn.execute(
                 """
                 INSERT INTO users (
-                    email, password_hash, display_name, role, genre, city, bio,
+                    email, password_hash, full_name, display_name, role, genre, city, bio,
                     tags_csv, instrument, services_csv, brent_account_id,
-                    auth_provider, is_admin, is_founder, is_verified
+                    provider, auth_provider, is_admin, is_founder, is_verified
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
                 """,
                 (
                     email,
                     generate_password_hash(OWNER_INITIAL_PASSWORD or secrets.token_urlsafe(32)),
+                    founder["full_name"],
                     founder["display_name"],
                     "admin",
                     "Brent & Co Ecosystem",
@@ -1013,6 +1054,7 @@ def seed_founder_profile():
                     "Career support, community connection, second chances",
                     brent_account_id(email),
                     OWNER_AUTH_PROVIDER,
+                    OWNER_AUTH_PROVIDER,
                 ),
             )
 
@@ -1021,24 +1063,38 @@ def row_to_profile(row):
     if row is None:
         return None
     data = dict(row)
+    data.setdefault("full_name", "")
+    data.setdefault("username", "")
+    data.setdefault("state", "")
+    data.setdefault("country", "")
+    data.setdefault("avatar_url", "")
     data.setdefault("profile_pic", "")
     data.setdefault("profile_video", "")
     data.setdefault("tags_csv", "")
     data.setdefault("instrument", "")
     data.setdefault("services_csv", "")
     data.setdefault("brent_account_id", "")
+    data.setdefault("provider", AUTH_PROVIDER)
+    data.setdefault("provider_id", "")
     data.setdefault("auth_provider", AUTH_PROVIDER)
     data.setdefault("is_admin", 0)
     data.setdefault("is_founder", 0)
     data.setdefault("is_verified", 0)
     data["brent_account_id"] = data["brent_account_id"] or brent_account_id(data.get("email", ""))
-    data["auth_provider"] = data["auth_provider"] or AUTH_PROVIDER
+    data["provider"] = data["provider"] or data["auth_provider"] or AUTH_PROVIDER
+    data["auth_provider"] = data["auth_provider"] or data["provider"] or AUTH_PROVIDER
     data["is_admin"] = bool(data.get("is_admin"))
     data["is_founder"] = bool(data.get("is_founder"))
     data["is_verified"] = bool(data.get("is_verified"))
     data["photo_filename"] = data.get("profile_pic") or ""
+    data["avatar_url"] = data.get("avatar_url") or data["photo_filename"] or ""
     data["video_filename"] = data.get("profile_video") or ""
     data["name"] = data.get("display_name") or ""
+    data["fullName"] = data.get("full_name") or data["name"]
+    data["displayName"] = data["name"]
+    data["username"] = data.get("username") or ""
+    data["providerId"] = data.get("provider_id") or ""
+    data["initials"] = "".join(part[:1] for part in (data["name"] or data["email"] or "SB").replace("/", " ").split()[:2]).upper() or "SB"
     data["official_badges"] = []
     if data["is_founder"]:
         data["official_badges"].extend(["Founder", "Brent & Co"])
@@ -1556,6 +1612,18 @@ def second_chance_login():
 
         session.clear()
         session["user_id"] = row["id"]
+        with get_db() as conn:
+            conn.execute(
+                """
+                UPDATE users
+                SET brent_account_id = COALESCE(NULLIF(brent_account_id, ''), ?),
+                    provider = COALESCE(NULLIF(provider, ''), ?),
+                    auth_provider = COALESCE(NULLIF(auth_provider, ''), ?),
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (brent_account_id(row["email"]), AUTH_PROVIDER, AUTH_PROVIDER, row["id"]),
+            )
         flash("Welcome back.")
         return redirect(url_for("second_chance_profile"))
 
@@ -1827,8 +1895,8 @@ def upload_media():
 
     with get_db() as conn:
         conn.execute(
-            "UPDATE users SET profile_pic = ?, profile_video = ? WHERE id = ?",
-            (profile_pic, profile_video, user.id),
+            "UPDATE users SET avatar_url = ?, profile_pic = ?, profile_video = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (profile_pic, profile_pic, profile_video, user.id),
         )
     flash("Media uploaded.")
     return redirect(url_for("profile"))
