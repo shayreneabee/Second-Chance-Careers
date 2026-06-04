@@ -50,6 +50,8 @@ APPLE_KEY_ID = os.getenv("APPLE_KEY_ID", "")
 APPLE_PRIVATE_KEY = os.getenv("APPLE_PRIVATE_KEY", "")
 FACEBOOK_CLIENT_ID = os.getenv("FACEBOOK_CLIENT_ID", "")
 FACEBOOK_CLIENT_SECRET = os.getenv("FACEBOOK_CLIENT_SECRET", "")
+GA_MEASUREMENT_ID = os.getenv("GA_MEASUREMENT_ID", "").strip()
+PLAUSIBLE_DOMAIN = os.getenv("PLAUSIBLE_DOMAIN", "").strip()
 FOUNDER_PROFILES = [
     {
         "email": os.getenv("BRENT_OWNER_EMAIL", "shalanda.brent@gmail.com").strip().lower(),
@@ -1150,6 +1152,8 @@ def inject_user():
         "brent_co_url": BRENT_CO_URL,
         "find_the_beat_url": FIND_THE_BEAT_URL,
         "second_chance_url": SECOND_CHANCE_URL,
+        "ga_measurement_id": GA_MEASUREMENT_ID,
+        "plausible_domain": PLAUSIBLE_DOMAIN,
     }
 
 
