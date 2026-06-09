@@ -1,4 +1,7 @@
 import os
+import base64
+import hmac
+import json
 import hashlib
 import secrets
 import sqlite3
@@ -6,6 +9,7 @@ import time
 from functools import wraps
 from pathlib import Path
 from types import SimpleNamespace
+from urllib.parse import urlencode
 
 from flask import (
     Flask,
@@ -38,6 +42,8 @@ SECOND_CHANCE_URL = os.getenv(
     "SECOND_CHANCE_URL",
     "https://secondchancecareers.org/",
 )
+SSO_SHARED_SECRET = os.getenv("SSO_SHARED_SECRET", "dev-sso-change-me")
+BRENT_SSO_URL = os.getenv("BRENT_SSO_URL", "https://findthebeatmusic.com/sso/start")
 PASSWORD_RESET_SECONDS = int(os.getenv("PASSWORD_RESET_SECONDS", "3600"))
 AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
 OWNER_AUTH_PROVIDER = os.getenv("BRENT_OWNER_AUTH_PROVIDER", "brent-core")
@@ -600,6 +606,108 @@ def brent_account_id(email):
     return f"brent-local-{digest}"
 
 
+def sso_b64decode(value):
+    padding = "=" * (-len(value) % 4)
+    return base64.urlsafe_b64decode((value + padding).encode("utf-8"))
+
+
+def verify_sso_token(token):
+    try:
+        body, signature = token.split(".", 1)
+        expected = hmac.new(
+            SSO_SHARED_SECRET.encode("utf-8"),
+            body.encode("utf-8"),
+            hashlib.sha256,
+        ).digest()
+        if not hmac.compare_digest(sso_b64decode(signature), expected):
+            return None
+        payload = json.loads(sso_b64decode(body).decode("utf-8"))
+    except (ValueError, json.JSONDecodeError, TypeError):
+        return None
+    if payload.get("aud") != "second-chance" or int(payload.get("exp", 0)) < int(time.time()):
+        return None
+    return payload
+
+
+def ensure_career_profile(conn, user_id):
+    conn.execute(
+        "INSERT OR IGNORE INTO career_profiles (user_id, updated_at) VALUES (?, CURRENT_TIMESTAMP)",
+        (user_id,),
+    )
+
+
+def upsert_sso_user(payload):
+    email = (payload.get("email") or "").strip().lower()
+    if not email:
+        raise ValueError("Brent SSO did not include an email address.")
+    display_name = (payload.get("display_name") or "").strip() or email.split("@")[0]
+    profile_photo = (payload.get("profile_photo") or "").strip()
+    provider = (payload.get("authentication_provider") or "brent-sso").strip()
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM users WHERE lower(email) = lower(?)", (email,)).fetchone()
+        if row:
+            conn.execute(
+                """
+                UPDATE users
+                SET full_name = COALESCE(NULLIF(full_name, ''), ?),
+                    display_name = COALESCE(NULLIF(display_name, ''), ?),
+                    avatar_url = COALESCE(NULLIF(avatar_url, ''), ?),
+                    profile_photo = COALESCE(NULLIF(profile_photo, ''), ?),
+                    brent_account_id = COALESCE(NULLIF(brent_account_id, ''), ?),
+                    provider = ?, auth_provider = ?, authentication_provider = ?,
+                    is_admin = MAX(is_admin, ?), is_founder = MAX(is_founder, ?),
+                    is_verified = MAX(is_verified, ?),
+                    last_login_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (
+                    display_name,
+                    display_name,
+                    profile_photo,
+                    profile_photo,
+                    payload.get("sub") or brent_account_id(email),
+                    provider,
+                    provider,
+                    provider,
+                    1 if payload.get("is_admin") else 0,
+                    1 if payload.get("is_founder") else 0,
+                    1 if payload.get("is_founder") else 0,
+                    row["id"],
+                ),
+            )
+            user_id = row["id"]
+        else:
+            cursor = conn.execute(
+                """
+                INSERT INTO users (
+                    email, password_hash, full_name, display_name, avatar_url, profile_photo,
+                    role, brent_account_id, provider, auth_provider, authentication_provider,
+                    is_admin, is_founder, is_verified, last_login_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, 'member', ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """,
+                (
+                    email,
+                    generate_password_hash(secrets.token_urlsafe(32)),
+                    display_name,
+                    display_name,
+                    profile_photo,
+                    profile_photo,
+                    payload.get("sub") or brent_account_id(email),
+                    provider,
+                    provider,
+                    provider,
+                    1 if payload.get("is_admin") else 0,
+                    1 if payload.get("is_founder") else 0,
+                    1 if payload.get("is_founder") else 0,
+                ),
+            )
+            user_id = cursor.lastrowid
+        ensure_career_profile(conn, user_id)
+        return conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+
+
 def init_db():
     with get_db() as conn:
         conn.execute(
@@ -627,10 +735,13 @@ def init_db():
                 provider TEXT DEFAULT 'local',
                 provider_id TEXT DEFAULT '',
                 auth_provider TEXT DEFAULT 'local',
+                authentication_provider TEXT DEFAULT 'local',
+                profile_photo TEXT DEFAULT '',
                 is_admin INTEGER DEFAULT 0,
                 is_founder INTEGER DEFAULT 0,
                 is_verified INTEGER DEFAULT 0,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                last_login_at TEXT DEFAULT '',
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
             """
@@ -646,6 +757,19 @@ def init_db():
                 thumb_filename TEXT DEFAULT '',
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(profile_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS career_profiles (
+                user_id INTEGER PRIMARY KEY,
+                checklist_json TEXT DEFAULT '{}',
+                job_interests TEXT DEFAULT '',
+                settings_json TEXT DEFAULT '{}',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
             )
             """
         )
@@ -722,10 +846,13 @@ def init_db():
             "provider": "TEXT DEFAULT 'local'",
             "provider_id": "TEXT DEFAULT ''",
             "auth_provider": "TEXT DEFAULT 'local'",
+            "authentication_provider": "TEXT DEFAULT 'local'",
+            "profile_photo": "TEXT DEFAULT ''",
             "is_admin": "INTEGER DEFAULT 0",
             "is_founder": "INTEGER DEFAULT 0",
             "is_verified": "INTEGER DEFAULT 0",
             "created_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
+            "last_login_at": "TEXT DEFAULT ''",
             "updated_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
         }.items():
             if column not in existing_columns:
@@ -769,8 +896,9 @@ def remove_upload(filename):
 
 
 def profile_form_fields():
+    email_name = request.form.get("email", "").strip().split("@")[0]
     return {
-        "display_name": request.form.get("display_name", "").strip(),
+        "display_name": request.form.get("display_name", "").strip() or email_name or "New Member",
         "role": request.form.get("role", "").strip(),
         "genre": request.form.get("genre", "").strip(),
         "city": request.form.get("city", "").strip(),
@@ -783,8 +911,12 @@ def profile_form_fields():
 
 def second_chance_profile_fields(existing=None):
     selected_skills = request.form.getlist("skills")
+    email_name = request.form.get("email", "").strip().split("@")[0]
     return {
-        "display_name": request.form.get("display_name", "").strip(),
+        "display_name": request.form.get("display_name", "").strip()
+        or (existing.display_name if existing else "")
+        or email_name
+        or "New Member",
         "role": "Second Chance Member",
         "genre": "Career readiness",
         "city": request.form.get("city", "").strip(),
@@ -826,9 +958,10 @@ def create_user(email, password, fields, profile_pic):
             INSERT INTO users (
                 email, password_hash, full_name, display_name, role, genre, city, bio,
                 tags_csv, instrument, services_csv, avatar_url, profile_pic,
-                brent_account_id, provider, auth_provider, updated_at
+                brent_account_id, provider, auth_provider, authentication_provider,
+                profile_photo, last_login_at, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """,
             (
                 email,
@@ -847,9 +980,13 @@ def create_user(email, password, fields, profile_pic):
                 brent_account_id(email),
                 AUTH_PROVIDER,
                 AUTH_PROVIDER,
+                AUTH_PROVIDER,
+                profile_pic,
             ),
         )
-        return cursor.lastrowid
+        user_id = cursor.lastrowid
+        ensure_career_profile(conn, user_id)
+        return user_id
 
 
 def update_user_profile(user_id, fields, profile_pic, profile_video):
@@ -1001,6 +1138,8 @@ def seed_founder_profile():
             email = founder["email"]
             if not email:
                 continue
+            full_name = founder.get("full_name") or founder.get("display_name") or email.split("@")[0]
+            display_name = founder.get("display_name") or full_name
             existing = conn.execute(
                 "SELECT * FROM users WHERE lower(email) = lower(?)",
                 (email,),
@@ -1011,14 +1150,14 @@ def seed_founder_profile():
                     UPDATE users
                     SET full_name = ?, display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
                         tags_csv = ?, instrument = ?, services_csv = ?,
-                        brent_account_id = ?, provider = ?, auth_provider = ?,
+                        brent_account_id = ?, provider = ?, auth_provider = ?, authentication_provider = ?,
                         is_admin = 1, is_founder = 1, is_verified = 1,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
                     """,
                     (
-                        founder["full_name"],
-                        founder["display_name"],
+                        full_name,
+                        display_name,
                         "admin",
                         "Brent & Co Ecosystem",
                         "Brent & Co",
@@ -1029,24 +1168,26 @@ def seed_founder_profile():
                         brent_account_id(email),
                         OWNER_AUTH_PROVIDER,
                         OWNER_AUTH_PROVIDER,
+                        OWNER_AUTH_PROVIDER,
                         existing["id"],
                     ),
                 )
+                ensure_career_profile(conn, existing["id"])
                 continue
             conn.execute(
                 """
                 INSERT INTO users (
                     email, password_hash, full_name, display_name, role, genre, city, bio,
                     tags_csv, instrument, services_csv, brent_account_id,
-                    provider, auth_provider, is_admin, is_founder, is_verified
+                    provider, auth_provider, authentication_provider, is_admin, is_founder, is_verified
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
                 """,
                 (
                     email,
                     generate_password_hash(OWNER_INITIAL_PASSWORD or secrets.token_urlsafe(32)),
-                    founder["full_name"],
-                    founder["display_name"],
+                    full_name,
+                    display_name,
                     "admin",
                     "Brent & Co Ecosystem",
                     "Brent & Co",
@@ -1057,8 +1198,12 @@ def seed_founder_profile():
                     brent_account_id(email),
                     OWNER_AUTH_PROVIDER,
                     OWNER_AUTH_PROVIDER,
+                    OWNER_AUTH_PROVIDER,
                 ),
             )
+            new_user = conn.execute("SELECT id FROM users WHERE lower(email) = lower(?)", (email,)).fetchone()
+            if new_user:
+                ensure_career_profile(conn, new_user["id"])
 
 
 def row_to_profile(row):
@@ -1563,8 +1708,8 @@ def second_chance_signup():
         confirm_password = request.form.get("confirm_password", "")
         display_name = request.form.get("display_name", "").strip()
 
-        if not email or not password or not display_name:
-            flash("Name, email, and password are required.")
+        if not email or not password:
+            flash("Email and password are required.")
             return redirect(url_for("second_chance_signup"))
         if len(password) < 8:
             flash("Please choose a password with at least 8 characters.")
@@ -1574,7 +1719,7 @@ def second_chance_signup():
             return redirect(url_for("second_chance_signup"))
 
         fields = {
-            "display_name": display_name,
+            "display_name": display_name or email.split("@")[0] or "New Member",
             "role": "Second Chance Member",
             "genre": "Career readiness",
             "city": request.form.get("city", "").strip(),
@@ -1602,6 +1747,26 @@ def second_chance_signup():
     return render_template("second_chance/signup.html")
 
 
+@app.route("/sso/login")
+def sso_login():
+    next_path = request.args.get("next") or url_for("second_chance_profile")
+    query = urlencode({"app": "second-chance", "next": next_path})
+    return redirect(f"{BRENT_SSO_URL}?{query}")
+
+
+@app.route("/sso/consume")
+def sso_consume():
+    payload = verify_sso_token(request.args.get("token", ""))
+    if not payload:
+        flash("That Brent & Co sign-in link expired. Please try again.")
+        return redirect(url_for("second_chance_login"))
+    user = upsert_sso_user(payload)
+    session.clear()
+    session["user_id"] = user["id"]
+    flash("Signed in with your Brent & Co account.")
+    return redirect(request.args.get("next") or url_for("second_chance_profile"))
+
+
 @app.route("/second-chance/login", methods=["GET", "POST"])
 def second_chance_login():
     if request.method == "POST":
@@ -1623,11 +1788,14 @@ def second_chance_login():
                 SET brent_account_id = COALESCE(NULLIF(brent_account_id, ''), ?),
                     provider = COALESCE(NULLIF(provider, ''), ?),
                     auth_provider = COALESCE(NULLIF(auth_provider, ''), ?),
+                    authentication_provider = COALESCE(NULLIF(authentication_provider, ''), ?),
+                    last_login_at = CURRENT_TIMESTAMP,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """,
-                (brent_account_id(row["email"]), AUTH_PROVIDER, AUTH_PROVIDER, row["id"]),
+                (brent_account_id(row["email"]), AUTH_PROVIDER, AUTH_PROVIDER, AUTH_PROVIDER, row["id"]),
             )
+            ensure_career_profile(conn, row["id"])
         flash("Welcome back.")
         return redirect(url_for("second_chance_profile"))
 
@@ -1913,8 +2081,8 @@ def signup():
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
         fields = profile_form_fields()
-        if not email or not password or not fields["display_name"]:
-            flash("Display name, email, and password are required.")
+        if not email or not password:
+            flash("Email and password are required.")
             return redirect(url_for("signup"))
         if len(password) < 8:
             flash("Password must be at least 8 characters.")
@@ -1958,6 +2126,21 @@ def login():
 
         session.clear()
         session["user_id"] = row["id"]
+        with get_db() as conn:
+            conn.execute(
+                """
+                UPDATE users
+                SET brent_account_id = COALESCE(NULLIF(brent_account_id, ''), ?),
+                    provider = COALESCE(NULLIF(provider, ''), ?),
+                    auth_provider = COALESCE(NULLIF(auth_provider, ''), ?),
+                    authentication_provider = COALESCE(NULLIF(authentication_provider, ''), ?),
+                    last_login_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (brent_account_id(row["email"]), AUTH_PROVIDER, AUTH_PROVIDER, AUTH_PROVIDER, row["id"]),
+            )
+            ensure_career_profile(conn, row["id"])
         flash("You are logged in.")
         return redirect(url_for("profile"))
 

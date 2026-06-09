@@ -77,6 +77,21 @@
     font-weight: 800;
   }
 
+  .signup-optional {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .signup-optional summary {
+    cursor: pointer;
+    padding: 1rem;
+    border-radius: 12px;
+    background: rgba(19, 75, 56, 0.09);
+    color: #134b38;
+    text-align: center;
+    font-weight: 800;
+  }
+
   .signup-submit {
     min-height: 58px;
     width: 100%;
@@ -106,13 +121,8 @@
 <div class="sc-band">Sign up</div>
 
 <section class="signup-panel">
-  <p>Create your new account</p>
+  <p>Create your account now. Build your path when you are ready.</p>
   <form class="signup-form" method="POST" enctype="multipart/form-data">
-    <label class="sc-field">
-      <span>♟</span>
-      <input name="display_name" placeholder="Full Name" required>
-    </label>
-
     <label class="sc-field">
       <span>✉</span>
       <input name="email" type="email" placeholder="yourname@example.com" required>
@@ -123,27 +133,30 @@
       <input name="password" type="password" placeholder="Password" required>
     </label>
 
-    <label class="sc-field">
-      <span>▣</span>
-      <input name="confirm_password" type="password" placeholder="Confirm Password" required>
-    </label>
+    <details class="signup-optional">
+      <summary>Optional: start my career profile</summary>
+      <label class="sc-field">
+        <span>♟</span>
+        <input name="display_name" placeholder="Full Name">
+      </label>
 
-    <label class="sc-field">
-      <span>⌂</span>
-      <input name="city" placeholder="City, State">
-    </label>
+      <label class="sc-field">
+        <span>⌂</span>
+        <input name="city" placeholder="City, State">
+      </label>
 
-    <label class="sc-field">
-      <span>⇪</span>
-      <input name="profile_pic" type="file" accept="image/*">
-    </label>
+      <label class="sc-field">
+        <span>⇪</span>
+        <input name="profile_pic" type="file" accept="image/*">
+      </label>
 
-    <div class="skill-checks" aria-label="Career skills">
-      <label><input type="checkbox" name="skills" value="Resume Help"> Resume Help</label>
-      <label><input type="checkbox" name="skills" value="Interview Prep"> Interview Prep</label>
-      <label><input type="checkbox" name="skills" value="Documents"> Documents</label>
-      <label><input type="checkbox" name="skills" value="Job Search"> Job Search</label>
-    </div>
+      <div class="skill-checks" aria-label="Career skills">
+        <label><input type="checkbox" name="skills" value="Resume Help"> Resume Help</label>
+        <label><input type="checkbox" name="skills" value="Interview Prep"> Interview Prep</label>
+        <label><input type="checkbox" name="skills" value="Documents"> Documents</label>
+        <label><input type="checkbox" name="skills" value="Job Search"> Job Search</label>
+      </div>
+    </details>
 
     <p class="terms">
       By signing up you've agree to <a href="{{ brent_co_url }}">Our Terms of Use</a><br>
