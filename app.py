@@ -64,11 +64,15 @@ FOUNDER_PROFILES = [
         "full_name": os.getenv("BRENT_OWNER_FULL_NAME", "Shalanda Brent"),
         "display_name": os.getenv("BRENT_OWNER_DISPLAY_NAME", "Shay"),
     },
-    {
-        "email": os.getenv("BRENT_COFOUNDER_EMAIL", "jerod.l.cotton@gmail.com").strip().lower(),
-        "display_name": os.getenv("BRENT_COFOUNDER_DISPLAY_NAME", "Jerod / Brent & Co Founder"),
-    },
 ]
+REMOVED_FOUNDER_ACCOUNT_IDS = {
+    "brent-local-5d8164cc79cd29c886ce672de9ce801e5583e968504d3390524812cc204b37be",
+}
+REMOVED_FOUNDER_EMAILS = {
+    email.strip().lower()
+    for email in os.getenv("BRENT_REMOVED_FOUNDER_EMAILS", "").split(",")
+    if email.strip()
+}
 OWNER_BIO = (
     "Official Brent & Co founder profile for ecosystem updates, career support, "
     "and community connection."
@@ -1204,6 +1208,27 @@ def seed_founder_profile():
             new_user = conn.execute("SELECT id FROM users WHERE lower(email) = lower(?)", (email,)).fetchone()
             if new_user:
                 ensure_career_profile(conn, new_user["id"])
+        cleanup_removed_founders(conn)
+
+
+def cleanup_removed_founders(conn):
+    account_ids = {account_id for account_id in REMOVED_FOUNDER_ACCOUNT_IDS if account_id}
+    account_ids.update(brent_account_id(email) for email in REMOVED_FOUNDER_EMAILS)
+    if not account_ids:
+        return
+    placeholders = ",".join("?" for _ in account_ids)
+    conn.execute(
+        f"""
+        UPDATE users
+        SET full_name = '', display_name = 'User',
+            role = 'user', genre = '', city = '', bio = '', tags_csv = '',
+            instrument = '', services_csv = '',
+            is_admin = 0, is_founder = 0, is_verified = 0,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE brent_account_id IN ({placeholders})
+        """,
+        tuple(account_ids),
+    )
 
 
 def row_to_profile(row):
