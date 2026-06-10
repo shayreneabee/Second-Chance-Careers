@@ -7,6 +7,7 @@ import secrets
 import sqlite3
 import time
 from functools import wraps
+from html import escape
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.parse import urlencode
@@ -638,6 +639,42 @@ def ensure_career_profile(conn, user_id):
         "INSERT OR IGNORE INTO career_profiles (user_id, updated_at) VALUES (?, CURRENT_TIMESTAMP)",
         (user_id,),
     )
+    user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    if not user:
+        return
+    profile = row_to_profile(user)
+    completion_fields = [
+        profile.display_name,
+        profile.profile_pic or profile.avatar_url or profile.profile_photo,
+        profile.bio,
+        profile.city,
+        profile.state,
+    ]
+    completion = int(sum(1 for value in completion_fields if value) / len(completion_fields) * 100)
+    interests = ", ".join(
+        item for item in [profile.role, profile.genre, profile.services_csv, profile.city] if item
+    )
+    conn.execute(
+        """
+        INSERT INTO profiles (
+            user_id, profile_completion_percentage, profile_visibility,
+            social_links, interests, updated_at
+        )
+        VALUES (?, ?, 'public', '{}', ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(user_id) DO UPDATE SET
+            profile_completion_percentage = excluded.profile_completion_percentage,
+            interests = excluded.interests,
+            updated_at = CURRENT_TIMESTAMP
+        """,
+        (user_id, completion, interests),
+    )
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO app_memberships (user_id, app_name, role)
+        VALUES (?, 'second-chance', ?)
+        """,
+        (user_id, profile.role or "user"),
+    )
 
 
 def upsert_sso_user(payload):
@@ -720,14 +757,18 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
+                first_name TEXT DEFAULT '',
+                last_name TEXT DEFAULT '',
                 full_name TEXT DEFAULT '',
                 display_name TEXT DEFAULT '',
                 username TEXT DEFAULT '',
                 role TEXT DEFAULT '',
+                account_type TEXT DEFAULT 'Career Member',
                 genre TEXT DEFAULT '',
                 city TEXT DEFAULT '',
                 state TEXT DEFAULT '',
                 country TEXT DEFAULT '',
+                phone TEXT DEFAULT '',
                 bio TEXT DEFAULT '',
                 tags_csv TEXT DEFAULT '',
                 instrument TEXT DEFAULT '',
@@ -740,6 +781,7 @@ def init_db():
                 provider_id TEXT DEFAULT '',
                 auth_provider TEXT DEFAULT 'local',
                 authentication_provider TEXT DEFAULT 'local',
+                oauth_subject TEXT DEFAULT '',
                 profile_photo TEXT DEFAULT '',
                 is_admin INTEGER DEFAULT 0,
                 is_founder INTEGER DEFAULT 0,
@@ -761,6 +803,33 @@ def init_db():
                 thumb_filename TEXT DEFAULT '',
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(profile_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS profiles (
+                user_id INTEGER PRIMARY KEY,
+                profile_completion_percentage INTEGER DEFAULT 0,
+                profile_visibility TEXT DEFAULT 'public',
+                social_links TEXT DEFAULT '{}',
+                interests TEXT DEFAULT '',
+                settings_json TEXT DEFAULT '{}',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS app_memberships (
+                user_id INTEGER NOT NULL,
+                app_name TEXT NOT NULL,
+                role TEXT DEFAULT 'user',
+                joined_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(user_id, app_name),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
             )
             """
         )
@@ -837,10 +906,14 @@ def init_db():
             row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()
         }
         for column, definition in {
+            "first_name": "TEXT DEFAULT ''",
+            "last_name": "TEXT DEFAULT ''",
             "full_name": "TEXT DEFAULT ''",
             "username": "TEXT DEFAULT ''",
+            "account_type": "TEXT DEFAULT 'Career Member'",
             "state": "TEXT DEFAULT ''",
             "country": "TEXT DEFAULT ''",
+            "phone": "TEXT DEFAULT ''",
             "avatar_url": "TEXT DEFAULT ''",
             "tags_csv": "TEXT DEFAULT ''",
             "instrument": "TEXT DEFAULT ''",
@@ -851,6 +924,7 @@ def init_db():
             "provider_id": "TEXT DEFAULT ''",
             "auth_provider": "TEXT DEFAULT 'local'",
             "authentication_provider": "TEXT DEFAULT 'local'",
+            "oauth_subject": "TEXT DEFAULT ''",
             "profile_photo": "TEXT DEFAULT ''",
             "is_admin": "INTEGER DEFAULT 0",
             "is_founder": "INTEGER DEFAULT 0",
@@ -861,6 +935,20 @@ def init_db():
         }.items():
             if column not in existing_columns:
                 conn.execute(f"ALTER TABLE users ADD COLUMN {column} {definition}")
+        profile_columns = {
+            row["name"] for row in conn.execute("PRAGMA table_info(profiles)").fetchall()
+        }
+        for column, definition in {
+            "profile_completion_percentage": "INTEGER DEFAULT 0",
+            "profile_visibility": "TEXT DEFAULT 'public'",
+            "social_links": "TEXT DEFAULT '{}'",
+            "interests": "TEXT DEFAULT ''",
+            "settings_json": "TEXT DEFAULT '{}'",
+            "created_at": "TEXT DEFAULT ''",
+            "updated_at": "TEXT DEFAULT ''",
+        }.items():
+            if column not in profile_columns:
+                conn.execute(f"ALTER TABLE profiles ADD COLUMN {column} {definition}")
 
 
 def allowed_file(filename, allowed_extensions):
@@ -906,6 +994,7 @@ def profile_form_fields():
         "role": request.form.get("role", "").strip(),
         "genre": request.form.get("genre", "").strip(),
         "city": request.form.get("city", "").strip(),
+        "state": request.form.get("state", "").strip(),
         "bio": request.form.get("bio", "").strip(),
         "tags_csv": request.form.get("tags_csv", "").strip(),
         "instrument": request.form.get("instrument", "").strip(),
@@ -924,6 +1013,7 @@ def second_chance_profile_fields(existing=None):
         "role": "Second Chance Member",
         "genre": "Career readiness",
         "city": request.form.get("city", "").strip(),
+        "state": request.form.get("state", "").strip() or (existing.state if existing else ""),
         "bio": request.form.get("bio", "").strip()
         or "Building a new career path with Second Chance Careers.",
         "tags_csv": "resume, jobs, life skills",
@@ -960,12 +1050,12 @@ def create_user(email, password, fields, profile_pic):
         cursor = conn.execute(
             """
             INSERT INTO users (
-                email, password_hash, full_name, display_name, role, genre, city, bio,
+                email, password_hash, full_name, display_name, role, account_type, genre, city, state, bio,
                 tags_csv, instrument, services_csv, avatar_url, profile_pic,
                 brent_account_id, provider, auth_provider, authentication_provider,
                 profile_photo, last_login_at, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """,
             (
                 email,
@@ -973,8 +1063,10 @@ def create_user(email, password, fields, profile_pic):
                 fields["display_name"],
                 fields["display_name"],
                 fields["role"],
+                fields["role"] or "Career Member",
                 fields["genre"],
                 fields["city"],
+                fields["state"],
                 fields["bio"],
                 fields["tags_csv"],
                 fields["instrument"],
@@ -999,7 +1091,7 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
             """
             UPDATE users
             SET full_name = COALESCE(NULLIF(full_name, ''), ?),
-                display_name = ?, role = ?, genre = ?, city = ?, bio = ?,
+                display_name = ?, role = ?, account_type = ?, genre = ?, city = ?, state = ?, bio = ?,
                 tags_csv = ?, instrument = ?, services_csv = ?,
                 avatar_url = ?, profile_pic = ?, profile_video = ?,
                 updated_at = CURRENT_TIMESTAMP
@@ -1009,8 +1101,10 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
                 fields["display_name"],
                 fields["display_name"],
                 fields["role"],
+                fields["role"] or "Career Member",
                 fields["genre"],
                 fields["city"],
+                fields["state"],
                 fields["bio"],
                 fields["tags_csv"],
                 fields["instrument"],
@@ -1612,6 +1706,11 @@ def second_chance_home():
         features=SECOND_CHANCE_FEATURES,
         checklist=SECOND_CHANCE_CHECKLIST,
     )
+
+
+@app.route("/second-chance/about")
+def second_chance_about():
+    return render_template("second_chance/about.html")
 
 
 @app.route("/my-path", methods=["GET", "POST"])
@@ -2401,6 +2500,101 @@ def delete_message(message_id):
 def like_performance(perf_id):
     flash("Likes are not ready yet.")
     return redirect(url_for("performance_detail", perf_id=perf_id))
+
+
+@app.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+    user = current_user()
+    if request.method == "POST":
+        visibility = request.form.get("profile_visibility", "public").strip()
+        if visibility not in {"public", "private"}:
+            visibility = "public"
+        settings_json = json.dumps(
+            {
+                "email_notifications": bool(request.form.get("email_notifications")),
+                "application_reminders": bool(request.form.get("application_reminders")),
+            }
+        )
+        with get_db() as conn:
+            ensure_career_profile(conn, user.id)
+            conn.execute(
+                """
+                UPDATE profiles
+                SET profile_visibility = ?, settings_json = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ?
+                """,
+                (visibility, settings_json, user.id),
+            )
+        flash("Settings saved.")
+        return redirect(url_for("settings"))
+
+    with get_db() as conn:
+        profile_row = conn.execute("SELECT * FROM profiles WHERE user_id = ?", (user.id,)).fetchone()
+    display_name = escape(user.display_name or user.full_name or user.email)
+    visibility = escape(profile_row["profile_visibility"] if profile_row else "public")
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings | Second Chance Careers</title><link rel="stylesheet" href="/static/css/styles.css"></head>
+<body class="page-shell"><main class="auth-card">
+<p class="eyebrow">Second Chance settings</p><h1>{display_name}</h1>
+<p>Manage profile visibility and Brent & Co account preferences.</p>
+<form method="post" class="profile-form">
+<label>Profile visibility <select name="profile_visibility"><option value="public" {"selected" if visibility == "public" else ""}>Public</option><option value="private" {"selected" if visibility == "private" else ""}>Private</option></select></label>
+<label><input type="checkbox" name="email_notifications" checked> Email notifications</label>
+<label><input type="checkbox" name="application_reminders" checked> Career checklist reminders</label>
+<button class="primary-button" type="submit">Save settings</button>
+</form><p><a href="/second-chance/profile">Back to profile</a></p></main></body></html>"""
+
+
+@app.route("/admin")
+@login_required
+def admin_dashboard():
+    user = current_user()
+    if not (user.is_admin or user.is_founder or user.email.lower() == FOUNDER_PROFILES[0]["email"]):
+        return "<h1>Admin access required</h1><p>Log in with the Brent & Co founder account.</p>", 403
+
+    with get_db() as conn:
+        total_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        total_profiles = conn.execute("SELECT COUNT(*) FROM profiles").fetchone()[0]
+        total_applications = conn.execute("SELECT COUNT(*) FROM second_chance_applications").fetchone()[0]
+        total_messages = conn.execute("SELECT COUNT(*) FROM messages").fetchone()[0]
+        latest_users = conn.execute(
+            """
+            SELECT u.*, p.profile_completion_percentage
+            FROM users u
+            LEFT JOIN profiles p ON p.user_id = u.id
+            ORDER BY u.created_at DESC
+            LIMIT 30
+            """
+        ).fetchall()
+        apps = conn.execute(
+            "SELECT app_name, COUNT(*) AS total FROM app_memberships GROUP BY app_name ORDER BY app_name"
+        ).fetchall()
+
+    app_rows = "".join(
+        f"<tr><td>{escape(row['app_name'])}</td><td>{row['total']}</td></tr>" for row in apps
+    ) or "<tr><td colspan='2'>No app memberships yet</td></tr>"
+    user_rows = "".join(
+        "<tr>"
+        f"<td><a href='/profiles/{row['id']}'>{escape(row['display_name'] or row['full_name'] or row['email'])}</a></td>"
+        f"<td>{escape(row['email'])}</td>"
+        f"<td>{escape(row['account_type'] or row['role'] or 'Career Member')}</td>"
+        f"<td>{escape(', '.join(part for part in [row['city'], row['state']] if part))}</td>"
+        f"<td>{row['profile_completion_percentage'] or 0}%</td>"
+        f"<td>{escape(row['last_login_at'] or '')}</td>"
+        "</tr>"
+        for row in latest_users
+    )
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brent & Co Admin | Second Chance Careers</title><link rel="stylesheet" href="/static/css/styles.css"></head>
+<body class="page-shell"><main class="admin-dashboard">
+<p class="eyebrow">Brent & Co control room</p><h1>Second Chance Admin Dashboard</h1>
+<section class="stats-grid"><article><strong>{total_users}</strong><span>Total users</span></article><article><strong>{total_profiles}</strong><span>Shared profiles</span></article><article><strong>{total_applications}</strong><span>Applications</span></article><article><strong>{total_messages}</strong><span>Messages</span></article></section>
+<section class="admin-panel"><h2>Users by app</h2><table><tbody>{app_rows}</tbody></table></section>
+<section class="admin-panel"><h2>User directory</h2><table><thead><tr><th>Name</th><th>Email</th><th>Account type</th><th>Location</th><th>Profile</th><th>Last login</th></tr></thead><tbody>{user_rows}</tbody></table></section>
+</main></body></html>"""
 
 
 @app.errorhandler(RequestEntityTooLarge)

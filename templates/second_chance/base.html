@@ -169,6 +169,59 @@
     }
     .sc-button .plus { font-size: 1.8rem; line-height: 0; font-weight: 300; }
 
+    .founder-section {
+      display: grid;
+      gap: 1.2rem;
+      margin: 1.2rem 1rem;
+      padding: clamp(1rem, 3vw, 1.5rem);
+      border: 1px solid rgba(4, 69, 67, 0.14);
+      border-radius: var(--sc-radius);
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: var(--sc-shadow);
+    }
+
+    .founder-photo {
+      margin: 0;
+      overflow: hidden;
+      border-radius: 22px;
+      background: var(--sc-mint);
+      box-shadow: var(--sc-lift);
+    }
+
+    .founder-photo img {
+      width: 100%;
+      aspect-ratio: 4 / 5;
+      object-fit: cover;
+    }
+
+    .founder-content h2 {
+      margin: 0.2rem 0;
+      color: var(--sc-teal-dark);
+      font-size: clamp(2rem, 7vw, 3.5rem);
+      line-height: 0.95;
+    }
+
+    .founder-content h3 {
+      margin: 0 0 0.8rem;
+      color: #4f7b56;
+      font-size: clamp(1.1rem, 2vw, 1.45rem);
+    }
+
+    .founder-content p {
+      color: #294c49;
+      line-height: 1.7;
+    }
+
+    .founder-content blockquote {
+      margin: 1rem 0;
+      padding: 1rem;
+      border-left: 4px solid #7bbf86;
+      border-radius: 0 16px 16px 0;
+      background: rgba(217, 240, 235, 0.72);
+      color: var(--sc-text);
+      line-height: 1.65;
+    }
+
     .sc-bottom {
       position: fixed;
       left: 50%;
@@ -284,6 +337,10 @@
       .sc-bottom { display: none; }
       .sc-main { padding-bottom: 0; }
       .ecosystem-footer { padding-bottom: 2rem; }
+      .founder-section {
+        grid-template-columns: minmax(16rem, 24rem) 1fr;
+        align-items: center;
+      }
     }
 
     /* Brent & Co ecosystem visual system */
@@ -422,6 +479,7 @@
       <a class="sc-home-link" href="{{ url_for('second_chance_home') }}">Home</a>
       <nav class="sc-desktop-nav" aria-label="Second Chance primary navigation">
         <a class="sc-desktop-link" href="{{ url_for('second_chance_home') }}">Home</a>
+        <a class="sc-desktop-link" href="{{ url_for('second_chance_about') }}">About</a>
         <a class="sc-desktop-link" href="{{ url_for('second_chance_search') }}">Search</a>
         <a class="sc-desktop-link" href="{{ url_for('second_chance_profile') }}">Profile</a>
         <a class="sc-desktop-link" href="{{ url_for('second_chance_my_path') }}">My Path</a>
