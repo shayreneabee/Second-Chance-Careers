@@ -286,6 +286,9 @@
 <section class="profile-layout">
   <div class="profile-person">
     <h2>{{ profile.display_name if profile else "Craig Reid" }}</h2>
+    {% if profile and profile.username %}
+      <p class="profile-handle">@{{ profile.username }}{% if profile.join_date %} · Joined {{ profile.join_date[:10] }}{% endif %}</p>
+    {% endif %}
     {% if profile and profile.profile_pic %}
       <img class="profile-photo" src="{{ url_for('uploaded_file', filename=profile.profile_pic) }}" alt="{{ profile.display_name }}">
     {% elif profile %}

@@ -3,6 +3,7 @@ import base64
 import hmac
 import json
 import hashlib
+import re
 import secrets
 import sqlite3
 import time
@@ -611,6 +612,53 @@ def brent_account_id(email):
     return f"brent-local-{digest}"
 
 
+def username_slug(value, fallback="member"):
+    base = re.sub(r"[^a-z0-9]+", "-", (value or "").strip().lower()).strip("-")
+    return base or fallback
+
+
+def unique_username(conn, preferred, email="", user_id=None):
+    base = username_slug(preferred or (email or "").split("@")[0], "member")
+    candidate = base
+    suffix = 2
+    while True:
+        params = [candidate]
+        sql = "SELECT id FROM users WHERE lower(username) = lower(?)"
+        if user_id:
+            sql += " AND id != ?"
+            params.append(user_id)
+        row = conn.execute(sql, params).fetchone()
+        if not row:
+            return candidate
+        candidate = f"{base}-{suffix}"
+        suffix += 1
+
+
+def ensure_user_identity(conn, user_id):
+    user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    if not user:
+        return
+    username = user["username"] or unique_username(
+        conn,
+        user["display_name"] or user["full_name"],
+        user["email"],
+        user_id,
+    )
+    conn.execute(
+        """
+        UPDATE users
+        SET username = ?, brent_account_id = COALESCE(NULLIF(brent_account_id, ''), ?),
+            auth_provider = COALESCE(NULLIF(auth_provider, ''), ?),
+            authentication_provider = COALESCE(NULLIF(authentication_provider, ''), ?),
+            provider = COALESCE(NULLIF(provider, ''), ?),
+            profile_photo = COALESCE(NULLIF(profile_photo, ''), profile_pic, avatar_url, ''),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        """,
+        (username, brent_account_id(user["email"]), AUTH_PROVIDER, AUTH_PROVIDER, AUTH_PROVIDER, user_id),
+    )
+
+
 def sso_b64decode(value):
     padding = "=" * (-len(value) % 4)
     return base64.urlsafe_b64decode((value + padding).encode("utf-8"))
@@ -635,6 +683,7 @@ def verify_sso_token(token):
 
 
 def ensure_career_profile(conn, user_id):
+    ensure_user_identity(conn, user_id)
     conn.execute(
         "INSERT OR IGNORE INTO career_profiles (user_id, updated_at) VALUES (?, CURRENT_TIMESTAMP)",
         (user_id,),
@@ -935,6 +984,8 @@ def init_db():
         }.items():
             if column not in existing_columns:
                 conn.execute(f"ALTER TABLE users ADD COLUMN {column} {definition}")
+        for row in conn.execute("SELECT id FROM users WHERE username = '' OR username IS NULL OR brent_account_id = '' OR brent_account_id IS NULL").fetchall():
+            ensure_user_identity(conn, row["id"])
         profile_columns = {
             row["name"] for row in conn.execute("PRAGMA table_info(profiles)").fetchall()
         }
@@ -991,6 +1042,7 @@ def profile_form_fields():
     email_name = request.form.get("email", "").strip().split("@")[0]
     return {
         "display_name": request.form.get("display_name", "").strip() or email_name or "New Member",
+        "username": request.form.get("username", "").strip(),
         "role": request.form.get("role", "").strip(),
         "genre": request.form.get("genre", "").strip(),
         "city": request.form.get("city", "").strip(),
@@ -1010,6 +1062,8 @@ def second_chance_profile_fields(existing=None):
         or (existing.display_name if existing else "")
         or email_name
         or "New Member",
+        "username": request.form.get("username", "").strip()
+        or (existing.username if existing else ""),
         "role": "Second Chance Member",
         "genre": "Career readiness",
         "city": request.form.get("city", "").strip(),
@@ -1081,25 +1135,38 @@ def create_user(email, password, fields, profile_pic):
             ),
         )
         user_id = cursor.lastrowid
+        username = unique_username(conn, fields.get("username") or fields["display_name"], email, user_id)
+        conn.execute(
+            "UPDATE users SET username = ?, avatar_url = ?, profile_photo = ? WHERE id = ?",
+            (username, profile_pic, profile_pic, user_id),
+        )
         ensure_career_profile(conn, user_id)
         return user_id
 
 
 def update_user_profile(user_id, fields, profile_pic, profile_video):
     with get_db() as conn:
+        existing = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        username = unique_username(
+            conn,
+            fields.get("username") or (existing["username"] if existing else "") or fields["display_name"],
+            existing["email"] if existing else "",
+            user_id,
+        )
         conn.execute(
             """
             UPDATE users
             SET full_name = COALESCE(NULLIF(full_name, ''), ?),
-                display_name = ?, role = ?, account_type = ?, genre = ?, city = ?, state = ?, bio = ?,
+                display_name = ?, username = ?, role = ?, account_type = ?, genre = ?, city = ?, state = ?, bio = ?,
                 tags_csv = ?, instrument = ?, services_csv = ?,
-                avatar_url = ?, profile_pic = ?, profile_video = ?,
+                avatar_url = ?, profile_photo = ?, profile_pic = ?, profile_video = ?,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
             """,
             (
                 fields["display_name"],
                 fields["display_name"],
+                username,
                 fields["role"],
                 fields["role"] or "Career Member",
                 fields["genre"],
@@ -1111,10 +1178,12 @@ def update_user_profile(user_id, fields, profile_pic, profile_video):
                 fields["services_csv"],
                 profile_pic,
                 profile_pic,
+                profile_pic,
                 profile_video,
                 user_id,
             ),
         )
+        ensure_career_profile(conn, user_id)
 
 
 def create_password_reset_token(email):
@@ -1346,6 +1415,7 @@ def row_to_profile(row):
     data.setdefault("is_admin", 0)
     data.setdefault("is_founder", 0)
     data.setdefault("is_verified", 0)
+    data.setdefault("created_at", "")
     data["brent_account_id"] = data["brent_account_id"] or brent_account_id(data.get("email", ""))
     data["provider"] = data["provider"] or data["auth_provider"] or AUTH_PROVIDER
     data["auth_provider"] = data["auth_provider"] or data["provider"] or AUTH_PROVIDER
@@ -1359,6 +1429,8 @@ def row_to_profile(row):
     data["fullName"] = data.get("full_name") or data["name"]
     data["displayName"] = data["name"]
     data["username"] = data.get("username") or ""
+    data["join_date"] = data.get("created_at") or ""
+    data["createdAt"] = data["join_date"]
     data["providerId"] = data.get("provider_id") or ""
     data["initials"] = "".join(part[:1] for part in (data["name"] or data["email"] or "SB").replace("/", " ").split()[:2]).upper() or "SB"
     data["official_badges"] = []
@@ -1847,6 +1919,7 @@ def second_chance_signup():
             "role": "Second Chance Member",
             "genre": "Career readiness",
             "city": request.form.get("city", "").strip(),
+            "state": request.form.get("state", "").strip(),
             "bio": "Building a new career path with Second Chance Careers.",
             "tags_csv": "resume, jobs, life skills",
             "instrument": "",
@@ -2040,6 +2113,33 @@ def second_chance_edit_profile():
         profile=user,
         skills=SECOND_CHANCE_SKILLS,
         selected_skills=selected_skills,
+    )
+
+
+@app.route("/profile/<username>")
+def public_profile_by_username(username):
+    normalized = username_slug(username)
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT id FROM users WHERE lower(username) = lower(?)",
+            (normalized,),
+        ).fetchone()
+    if not row:
+        flash("Profile not found.")
+        return redirect(url_for("profiles"))
+    profile = get_profile(row["id"])
+    selected_skills = {
+        skill.strip() for skill in (profile.services_csv or "").split(",") if skill.strip()
+    } if profile else set()
+    return render_template(
+        "second_chance/profile.html",
+        profile=profile,
+        selected_skills=selected_skills,
+        skills=SECOND_CHANCE_SKILLS,
+        search_items=SECOND_CHANCE_SEARCH_ITEMS[:4],
+        checklist=SECOND_CHANCE_CHECKLIST,
+        job_help=SECOND_CHANCE_JOB_HELP,
+        resource_groups=SECOND_CHANCE_RESOURCE_GROUPS,
     )
 
 
