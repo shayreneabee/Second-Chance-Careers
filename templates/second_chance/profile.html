@@ -57,6 +57,41 @@
     font-size: 0.78rem;
   }
 
+  .completion-card {
+    margin-top: 0.9rem;
+    padding: 0.85rem;
+    border: 1px solid var(--sc-line);
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 10px 24px rgba(5, 55, 52, 0.10);
+  }
+
+  .completion-card strong {
+    display: block;
+    color: var(--sc-teal-dark);
+  }
+
+  .completion-card p {
+    margin: 0.45rem 0 0;
+    color: #526d69;
+    font-size: 0.9rem;
+    line-height: 1.25;
+  }
+
+  .completion-meter {
+    height: 0.65rem;
+    margin-top: 0.65rem;
+    border-radius: 999px;
+    background: #dce9e4;
+    overflow: hidden;
+  }
+
+  .completion-meter span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--sc-gold), var(--sc-teal));
+  }
+
   .profile-meta {
     display: grid;
     gap: 0.35rem;
@@ -314,6 +349,11 @@
     <div class="profile-actions">
       <a class="sc-button" href="{{ url_for('second_chance_edit_profile') }}">Edit</a>
       <a class="sc-button" href="{{ url_for('second_chance_logout') }}">Logout</a>
+    </div>
+    <div class="completion-card">
+      <strong>Profile {{ completion|default(0) }}% Complete</strong>
+      <div class="completion-meter" aria-label="Profile completion"><span style="width: {{ completion|default(0) }}%;"></span></div>
+      <p>{% if completion|default(0) >= 100 %}Your career profile is ready.{% else %}Add your photo, bio, city/state, account type, resume/work details, and first action when you are ready.{% endif %}</p>
     </div>
   </div>
 
