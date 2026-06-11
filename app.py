@@ -2654,24 +2654,44 @@ def admin_dashboard():
     if not (user.is_admin or user.is_founder or user.email.lower() == FOUNDER_PROFILES[0]["email"]):
         return "<h1>Admin access required</h1><p>Log in with the Brent & Co founder account.</p>", 403
 
+    platform_filter = request.args.get("app", "all").strip() or "all"
+    user_filter_sql = ""
+    params = []
+    if platform_filter != "all":
+        user_filter_sql = "WHERE EXISTS (SELECT 1 FROM app_memberships am WHERE am.user_id = u.id AND am.app_name = ?)"
+        params.append(platform_filter)
+
     with get_db() as conn:
-        total_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-        total_profiles = conn.execute("SELECT COUNT(*) FROM profiles").fetchone()[0]
+        total_users = conn.execute(f"SELECT COUNT(*) FROM users u {user_filter_sql}", params).fetchone()[0]
+        new_today = conn.execute(f"SELECT COUNT(*) FROM users u {user_filter_sql} {'AND' if user_filter_sql else 'WHERE'} date(u.created_at) = date('now')", params).fetchone()[0]
+        active_users = conn.execute(f"SELECT COUNT(*) FROM users u {user_filter_sql} {'AND' if user_filter_sql else 'WHERE'} u.last_login_at != ''", params).fetchone()[0]
+        total_profiles = conn.execute(f"SELECT COUNT(*) FROM profiles p JOIN users u ON u.id = p.user_id {user_filter_sql}", params).fetchone()[0]
         total_applications = conn.execute("SELECT COUNT(*) FROM second_chance_applications").fetchone()[0]
+        total_showcases = conn.execute("SELECT COUNT(*) FROM performances").fetchone()[0]
         total_messages = conn.execute("SELECT COUNT(*) FROM messages").fetchone()[0]
+        avg_completion = conn.execute(
+            f"SELECT COALESCE(ROUND(AVG(p.profile_completion_percentage)), 0) FROM profiles p JOIN users u ON u.id = p.user_id {user_filter_sql}",
+            params,
+        ).fetchone()[0]
         latest_users = conn.execute(
-            """
+            f"""
             SELECT u.*, p.profile_completion_percentage
             FROM users u
             LEFT JOIN profiles p ON p.user_id = u.id
+            {user_filter_sql}
             ORDER BY u.created_at DESC
             LIMIT 30
-            """
+            """,
+            params,
         ).fetchall()
         apps = conn.execute(
             "SELECT app_name, COUNT(*) AS total FROM app_memberships GROUP BY app_name ORDER BY app_name"
         ).fetchall()
 
+    filters = ['<a class="sc-button" href="/admin?app=all">All apps</a>'] + [
+        f'<a class="sc-button" href="/admin?app={escape(row["app_name"])}">{escape(row["app_name"])}</a>'
+        for row in apps
+    ]
     app_rows = "".join(
         f"<tr><td>{escape(row['app_name'])}</td><td>{row['total']}</td></tr>" for row in apps
     ) or "<tr><td colspan='2'>No app memberships yet</td></tr>"
@@ -2690,8 +2710,9 @@ def admin_dashboard():
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Brent & Co Admin | Second Chance Careers</title><link rel="stylesheet" href="/static/css/styles.css"></head>
 <body class="page-shell"><main class="admin-dashboard">
-<p class="eyebrow">Brent & Co control room</p><h1>Second Chance Admin Dashboard</h1>
-<section class="stats-grid"><article><strong>{total_users}</strong><span>Total users</span></article><article><strong>{total_profiles}</strong><span>Shared profiles</span></article><article><strong>{total_applications}</strong><span>Applications</span></article><article><strong>{total_messages}</strong><span>Messages</span></article></section>
+<p class="eyebrow">Brent & Co founder control center</p><h1>Founder Dashboard</h1>
+<p>Filter: {escape(platform_filter)}</p><nav class="profile-actions">{''.join(filters)}</nav>
+<section class="stats-grid"><article><strong>{total_users}</strong><span>Total users</span></article><article><strong>{new_today}</strong><span>New users today</span></article><article><strong>{active_users}</strong><span>Active users</span></article><article><strong>{avg_completion}%</strong><span>Avg profile completion</span></article><article><strong>{total_messages}</strong><span>Messages sent</span></article><article><strong>{total_showcases}</strong><span>Showcases uploaded</span></article><article><strong>0</strong><span>Recipes submitted</span></article><article><strong>0</strong><span>Resumes uploaded</span></article><article><strong>{total_applications}</strong><span>Applications</span></article></section>
 <section class="admin-panel"><h2>Users by app</h2><table><tbody>{app_rows}</tbody></table></section>
 <section class="admin-panel"><h2>User directory</h2><table><thead><tr><th>Name</th><th>Email</th><th>Account type</th><th>Location</th><th>Profile</th><th>Last login</th></tr></thead><tbody>{user_rows}</tbody></table></section>
 </main></body></html>"""
