@@ -12,6 +12,7 @@
       --sc-mint: #d9f0eb;
       --sc-cream: #f2ffa8;
       --sc-text: #071514;
+      --sc-nav-text: #111827;
       --sc-muted: #57706c;
       --sc-card: rgba(246, 255, 252, 0.88);
       --sc-line: rgba(4, 69, 67, 0.14);
@@ -77,6 +78,7 @@
 
     .sc-brand {
       justify-self: center;
+      color: var(--sc-nav-text);
       font-size: clamp(1.45rem, 4.4vw, 2.45rem);
       line-height: 1.05;
       letter-spacing: 0.03em;
@@ -85,11 +87,7 @@
       transition: opacity var(--sc-ease);
     }
 
-    .sc-brand:hover,
-    .sc-desktop-link:hover,
-    .sc-home-link:hover {
-      opacity: 0.82;
-    }
+    .sc-brand:hover { color: var(--sc-teal-dark); }
 
     .sc-home-link {
       justify-self: center;
@@ -99,12 +97,13 @@
       place-items: center;
       border-radius: 999px;
       background: rgba(242, 255, 168, 0.16);
-      color: var(--sc-cream);
+      color: var(--sc-nav-text);
       font-size: 0.82rem;
       font-weight: 900;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      transition: opacity var(--sc-ease), background var(--sc-ease);
+      cursor: pointer;
+      transition: color var(--sc-ease), background var(--sc-ease), box-shadow var(--sc-ease), transform var(--sc-ease);
     }
 
     .sc-desktop-nav {
@@ -116,12 +115,28 @@
     }
 
     .sc-desktop-link {
-      color: var(--sc-cream);
+      position: relative;
+      padding: 0.52rem 0.72rem;
+      color: var(--sc-nav-text);
       font-size: 0.86rem;
       font-weight: 800;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      transition: opacity var(--sc-ease);
+      cursor: pointer;
+      transition: color var(--sc-ease), background var(--sc-ease), box-shadow var(--sc-ease), transform var(--sc-ease);
+    }
+
+    .sc-desktop-link:hover,
+    .sc-home-link:hover {
+      color: var(--sc-teal-dark);
+      box-shadow: inset 0 -3px 0 var(--sc-teal);
+    }
+
+    .sc-desktop-link.active,
+    .sc-home-link.active {
+      color: var(--sc-teal-dark);
+      background: rgba(217, 240, 235, 0.92);
+      box-shadow: inset 0 -3px 0 var(--sc-teal);
     }
 
     .sc-main { padding-bottom: 82px; }
@@ -242,6 +257,7 @@
       min-height: 70px;
       display: grid;
       place-items: center;
+      color: var(--sc-nav-text);
       font-size: 2.4rem;
       line-height: 1;
     }
@@ -251,8 +267,8 @@
       min-height: 62px;
       justify-self: center;
       border-radius: 50%;
-      background: var(--sc-cream);
-      color: var(--sc-text);
+      background: var(--sc-teal);
+      color: #ffffff;
       box-shadow: 0 8px 18px rgba(1, 41, 39, 0.16);
     }
 
@@ -382,6 +398,12 @@
       border: 1px solid rgba(4, 69, 67, 0.08);
     }
 
+    .sc-desktop-link,
+    .sc-home-link,
+    .sc-bottom a {
+      color: var(--sc-nav-text);
+    }
+
     .sc-button {
       background: linear-gradient(180deg, #f3d978, #7bbf86);
       border: 0;
@@ -389,7 +411,21 @@
     }
 
     .sc-desktop-link:hover,
-    .sc-home-link:hover,
+    .sc-home-link:hover {
+      color: #0f172a;
+      background: rgba(217, 240, 235, 0.96);
+      box-shadow: inset 0 -3px 0 #0f6f6b, var(--bc-lift);
+      transform: translateY(-2px);
+      text-decoration: none;
+    }
+
+    .sc-desktop-link.active,
+    .sc-home-link.active {
+      color: #0f172a;
+      background: rgba(217, 240, 235, 0.96);
+      box-shadow: inset 0 -3px 0 #0f6f6b;
+    }
+
     .sc-button:hover {
       transform: translateY(-2px);
       box-shadow: var(--bc-lift);
@@ -476,15 +512,15 @@
     <header class="sc-top">
       <a class="sc-logo" href="{{ url_for('second_chance_home') }}" aria-label="Second Chance Careers home"></a>
       <a class="sc-brand" href="{{ url_for('second_chance_home') }}">Second Chance Careers</a>
-      <a class="sc-home-link" href="{{ url_for('second_chance_home') }}">Home</a>
+      <a class="sc-home-link {% if request.path in ['/second-chance', '/'] %}active{% endif %}" href="{{ url_for('second_chance_home') }}">Home</a>
       <nav class="sc-desktop-nav" aria-label="Second Chance primary navigation">
-        <a class="sc-desktop-link" href="{{ url_for('second_chance_home') }}">Home</a>
-        <a class="sc-desktop-link" href="{{ url_for('second_chance_about') }}">About</a>
-        <a class="sc-desktop-link" href="{{ url_for('second_chance_search') }}">Search</a>
-        <a class="sc-desktop-link" href="{{ url_for('felony_friendly_employers') }}">Employers</a>
-        <a class="sc-desktop-link" href="{{ url_for('jobs') }}">Jobs</a>
-        <a class="sc-desktop-link" href="{{ url_for('second_chance_profile') }}">Profile</a>
-        <a class="sc-desktop-link" href="{{ url_for('second_chance_my_path') }}">My Path</a>
+        <a class="sc-desktop-link {% if request.path in ['/second-chance', '/'] %}active{% endif %}" href="{{ url_for('second_chance_home') }}">Home</a>
+        <a class="sc-desktop-link {% if request.path.startswith('/second-chance/about') %}active{% endif %}" href="{{ url_for('second_chance_about') }}">About</a>
+        <a class="sc-desktop-link {% if request.path.startswith('/second-chance/search') %}active{% endif %}" href="{{ url_for('second_chance_search') }}">Search</a>
+        <a class="sc-desktop-link {% if 'felony-friendly-employers' in request.path %}active{% endif %}" href="{{ url_for('felony_friendly_employers') }}">Employers</a>
+        <a class="sc-desktop-link {% if request.path in ['/jobs', '/second-chance/jobs'] %}active{% endif %}" href="{{ url_for('jobs') }}">Jobs</a>
+        <a class="sc-desktop-link {% if request.path.startswith('/second-chance/profile') or request.path.startswith('/profile') %}active{% endif %}" href="{{ url_for('second_chance_profile') }}">Profile</a>
+        <a class="sc-desktop-link {% if request.path in ['/my-path', '/second-chance/my-path'] %}active{% endif %}" href="{{ url_for('second_chance_my_path') }}">My Path</a>
         <a class="sc-desktop-link" href="https://findthebeatmusic.com/sso/start?app=lets-cook">Let's Cook</a>
         <a class="sc-desktop-link" href="https://findthebeatmusic.com/sso/start?app=find-the-beat">Find The Beat</a>
         <a class="sc-desktop-link" href="https://findthebeatmusic.com/sso/start?app=beu">BEU</a>
@@ -505,10 +541,10 @@
     </main>
 
     <nav class="sc-bottom" aria-label="Second Chance navigation">
-      <a href="{{ url_for('second_chance_home') }}" aria-label="Home">⌂</a>
-      <a href="{{ url_for('jobs') }}" aria-label="Jobs">⌕</a>
-      <a href="{{ url_for('second_chance_profile') }}" aria-label="Profile">♙</a>
-      <a class="active" href="{{ url_for('second_chance_my_path') }}" aria-label="My Path">✓</a>
+      <a class="{% if request.path in ['/second-chance', '/'] %}active{% endif %}" href="{{ url_for('second_chance_home') }}" aria-label="Home">⌂</a>
+      <a class="{% if request.path in ['/jobs', '/second-chance/jobs'] %}active{% endif %}" href="{{ url_for('jobs') }}" aria-label="Jobs">⌕</a>
+      <a class="{% if request.path.startswith('/second-chance/profile') or request.path.startswith('/profile') %}active{% endif %}" href="{{ url_for('second_chance_profile') }}" aria-label="Profile">♙</a>
+      <a class="{% if request.path in ['/my-path', '/second-chance/my-path'] %}active{% endif %}" href="{{ url_for('second_chance_my_path') }}" aria-label="My Path">✓</a>
     </nav>
     <footer class="ecosystem-footer" aria-label="Brent and Co ecosystem links">
       <nav class="ecosystem-dock" aria-label="Brent and Co ecosystem quick links">
