@@ -375,13 +375,20 @@
         linear-gradient(180deg, #f5fbf4 0%, #d9f0eb 58%, #fbfff7 100%);
     }
 
-    .sc-top,
+    .sc-top {
+      background: #0f6f6b;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 12px 28px rgba(1, 41, 39, 0.22);
+      backdrop-filter: blur(18px);
+    }
+
     .sc-bottom {
-      background: rgba(246, 255, 252, 0.82);
-      color: var(--sc-text);
-      border: 1px solid rgba(4, 69, 67, 0.08);
-      box-shadow: var(--bc-lift);
-      backdrop-filter: blur(22px);
+      background: #0f6f6b;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 -12px 30px rgba(1, 41, 39, 0.18);
+      backdrop-filter: blur(18px);
     }
 
     .sc-desktop-link,
@@ -394,14 +401,15 @@
 
     .sc-desktop-link,
     .sc-home-link {
-      background: rgba(255, 255, 255, 0.58);
-      border: 1px solid rgba(4, 69, 67, 0.08);
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.18);
     }
 
+    .sc-brand,
     .sc-desktop-link,
     .sc-home-link,
     .sc-bottom a {
-      color: var(--sc-nav-text);
+      color: #ffffff;
     }
 
     .sc-button {
@@ -412,18 +420,18 @@
 
     .sc-desktop-link:hover,
     .sc-home-link:hover {
-      color: #0f172a;
-      background: rgba(217, 240, 235, 0.96);
-      box-shadow: inset 0 -3px 0 #0f6f6b, var(--bc-lift);
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.2);
+      box-shadow: inset 0 -3px 0 #f2ffa8, var(--bc-lift);
       transform: translateY(-2px);
       text-decoration: none;
     }
 
     .sc-desktop-link.active,
     .sc-home-link.active {
-      color: #0f172a;
-      background: rgba(217, 240, 235, 0.96);
-      box-shadow: inset 0 -3px 0 #0f6f6b;
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.18);
+      box-shadow: inset 0 -3px 0 #f2ffa8;
     }
 
     .sc-button:hover {
