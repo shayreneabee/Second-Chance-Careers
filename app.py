@@ -1029,6 +1029,80 @@ def init_db():
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS fair_chance_employers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                company_name TEXT NOT NULL,
+                contact_person TEXT DEFAULT '',
+                email TEXT DEFAULT '',
+                phone TEXT DEFAULT '',
+                website TEXT DEFAULT '',
+                industry TEXT DEFAULT '',
+                city TEXT DEFAULT '',
+                state TEXT DEFAULT '',
+                location TEXT DEFAULT '',
+                hiring_type TEXT DEFAULT '',
+                hiring_notes TEXT DEFAULT '',
+                tags_csv TEXT DEFAULT '',
+                is_remote INTEGER DEFAULT 0,
+                is_entry_level INTEGER DEFAULT 0,
+                is_veteran_friendly INTEGER DEFAULT 0,
+                is_felony_friendly INTEGER DEFAULT 0,
+                is_hiring_now INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'pending',
+                submitted_by INTEGER,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(submitted_by) REFERENCES users(id) ON DELETE SET NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS second_chance_jobs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_title TEXT NOT NULL,
+                company_name TEXT NOT NULL,
+                industry TEXT DEFAULT '',
+                city TEXT DEFAULT '',
+                state TEXT DEFAULT '',
+                location TEXT DEFAULT '',
+                work_mode TEXT DEFAULT '',
+                pay_range TEXT DEFAULT '',
+                employment_type TEXT DEFAULT '',
+                description TEXT DEFAULT '',
+                requirements TEXT DEFAULT '',
+                background_notes TEXT DEFAULT '',
+                apply_link TEXT DEFAULT '',
+                tags_csv TEXT DEFAULT '',
+                is_entry_level INTEGER DEFAULT 0,
+                is_felony_friendly INTEGER DEFAULT 0,
+                is_veteran_friendly INTEGER DEFAULT 0,
+                no_degree_required INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'pending',
+                submitted_by INTEGER,
+                date_posted TEXT DEFAULT CURRENT_TIMESTAMP,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(submitted_by) REFERENCES users(id) ON DELETE SET NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS saved_jobs (
+                user_id INTEGER NOT NULL,
+                job_id INTEGER NOT NULL,
+                status TEXT DEFAULT 'saved',
+                saved_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                applied_at TEXT DEFAULT '',
+                PRIMARY KEY(user_id, job_id),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY(job_id) REFERENCES second_chance_jobs(id) ON DELETE CASCADE
+            )
+            """
+        )
 
         existing_columns = {
             row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()
@@ -1764,6 +1838,352 @@ def update_second_chance_application_status(user_id, application_id, status):
     return result.rowcount > 0
 
 
+def form_bool(name):
+    return 1 if request.form.get(name, "").lower() in {"1", "on", "yes", "true"} else 0
+
+
+def csv_from_items(items):
+    return ", ".join(item.strip() for item in items if item and item.strip())
+
+
+def split_csv(value):
+    return [item.strip() for item in (value or "").split(",") if item.strip()]
+
+
+def seed_workforce_data():
+    employer_count = 0
+    job_count = 0
+    with get_db() as conn:
+        employer_count = conn.execute("SELECT COUNT(*) FROM fair_chance_employers").fetchone()[0]
+        job_count = conn.execute("SELECT COUNT(*) FROM second_chance_jobs").fetchone()[0]
+        if employer_count == 0:
+            conn.executemany(
+                """
+                INSERT INTO fair_chance_employers (
+                    company_name, website, industry, city, state, location, hiring_type,
+                    hiring_notes, tags_csv, is_entry_level, is_veteran_friendly,
+                    is_felony_friendly, is_hiring_now, status
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved')
+                """,
+                [
+                    (
+                        "Goodwill Industries",
+                        "https://www.goodwill.org/jobs-training/",
+                        "Retail, Workforce Training",
+                        "Jackson",
+                        "MS",
+                        "Jackson, MS",
+                        "Retail, warehouse, and training programs",
+                        "Many local Goodwill organizations offer workforce development and may review applicants case by case.",
+                        "Felony friendly, Second chance employer, Entry level, Case-by-case review",
+                        1,
+                        0,
+                        1,
+                        1,
+                    ),
+                    (
+                        "PeopleReady",
+                        "https://jobs.peopleready.com/",
+                        "Staffing, Skilled Trades, Labor",
+                        "Nationwide",
+                        "",
+                        "Nationwide",
+                        "Temporary, temp-to-hire, and skilled labor assignments",
+                        "Staffing assignments vary by customer; many roles are reviewed individually.",
+                        "Second chance employer, Entry level, Hiring now, Case-by-case review",
+                        1,
+                        0,
+                        1,
+                        1,
+                    ),
+                    (
+                        "The Home Depot",
+                        "https://careers.homedepot.com/",
+                        "Retail, Warehouse, Distribution",
+                        "Nationwide",
+                        "",
+                        "Nationwide",
+                        "Retail stores, distribution, and customer support",
+                        "Background reviews may vary by role and location; applicants can review openings directly.",
+                        "Entry level, Veteran friendly, Case-by-case review",
+                        1,
+                        1,
+                        0,
+                        1,
+                    ),
+                ],
+            )
+        if job_count == 0:
+            conn.executemany(
+                """
+                INSERT INTO second_chance_jobs (
+                    job_title, company_name, industry, city, state, location, work_mode,
+                    pay_range, employment_type, description, requirements,
+                    background_notes, apply_link, tags_csv, is_entry_level,
+                    is_felony_friendly, is_veteran_friendly, no_degree_required, status
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved')
+                """,
+                [
+                    (
+                        "Warehouse Associate",
+                        "PeopleReady",
+                        "Warehouse",
+                        "Jackson",
+                        "MS",
+                        "Jackson, MS",
+                        "In-person",
+                        "$14-$18/hr",
+                        "Full-time / Temporary",
+                        "General warehouse support, loading, sorting, and team-based shift work.",
+                        "Reliable attendance, ability to stand and lift, and willingness to learn.",
+                        "Assignment requirements vary. Many applicants are reviewed case by case.",
+                        "https://jobs.peopleready.com/",
+                        "Entry-level, Felony-friendly, No degree required",
+                        1,
+                        1,
+                        0,
+                        1,
+                    ),
+                    (
+                        "Retail Team Member",
+                        "Goodwill Industries",
+                        "Retail",
+                        "Jackson",
+                        "MS",
+                        "Jackson, MS",
+                        "In-person",
+                        "Varies by location",
+                        "Part-time / Full-time",
+                        "Customer service, donations, merchandising, and store support.",
+                        "Positive customer service, dependable attendance, and ability to learn store systems.",
+                        "Local programs may include workforce support and case-by-case review.",
+                        "https://www.goodwill.org/jobs-training/",
+                        "Entry-level, Second-chance hiring, No degree required",
+                        1,
+                        1,
+                        0,
+                        1,
+                    ),
+                    (
+                        "Delivery Helper",
+                        "Local Logistics Partner",
+                        "Transportation",
+                        "Jackson",
+                        "MS",
+                        "Greater Jackson area",
+                        "Hybrid",
+                        "$15-$20/hr",
+                        "Contract",
+                        "Help load, route, and deliver packages on local routes.",
+                        "Valid ID, reliability, and ability to work on your feet.",
+                        "Background requirements vary by partner and route.",
+                        "https://www.indeed.com/",
+                        "Entry-level, Veteran friendly, Local routes",
+                        1,
+                        0,
+                        1,
+                        1,
+                    ),
+                ],
+            )
+
+
+def workforce_filters():
+    return {
+        "q": request.args.get("q", "").strip(),
+        "industry": request.args.get("industry", "").strip(),
+        "state": request.args.get("state", "").strip(),
+        "city": request.args.get("city", "").strip(),
+        "employment_type": request.args.get("employment_type", "").strip(),
+        "remote": request.args.get("remote") == "1",
+        "entry_level": request.args.get("entry_level") == "1",
+        "veteran_friendly": request.args.get("veteran_friendly") == "1",
+        "felony_friendly": request.args.get("felony_friendly") == "1",
+        "hiring_now": request.args.get("hiring_now") == "1",
+        "no_degree": request.args.get("no_degree") == "1",
+    }
+
+
+def get_employers(filters=None, status="approved"):
+    filters = filters or {}
+    where = []
+    params = []
+    if status:
+        where.append("status = ?")
+        params.append(status)
+    if filters.get("q"):
+        term = f"%{filters['q']}%"
+        where.append("(company_name LIKE ? OR industry LIKE ? OR hiring_notes LIKE ? OR tags_csv LIKE ?)")
+        params.extend([term, term, term, term])
+    if filters.get("industry"):
+        where.append("industry LIKE ?")
+        params.append(f"%{filters['industry']}%")
+    if filters.get("state"):
+        where.append("state LIKE ?")
+        params.append(f"%{filters['state']}%")
+    if filters.get("city"):
+        where.append("city LIKE ?")
+        params.append(f"%{filters['city']}%")
+    for key, column in [
+        ("remote", "is_remote"),
+        ("entry_level", "is_entry_level"),
+        ("veteran_friendly", "is_veteran_friendly"),
+        ("felony_friendly", "is_felony_friendly"),
+        ("hiring_now", "is_hiring_now"),
+    ]:
+        if filters.get(key):
+            where.append(f"{column} = 1")
+    sql = "SELECT * FROM fair_chance_employers"
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY is_hiring_now DESC, company_name ASC"
+    with get_db() as conn:
+        return conn.execute(sql, params).fetchall()
+
+
+def get_jobs(filters=None, status="approved"):
+    filters = filters or {}
+    where = []
+    params = []
+    if status:
+        where.append("status = ?")
+        params.append(status)
+    if filters.get("q"):
+        term = f"%{filters['q']}%"
+        where.append(
+            "(job_title LIKE ? OR company_name LIKE ? OR description LIKE ? OR requirements LIKE ? OR tags_csv LIKE ?)"
+        )
+        params.extend([term, term, term, term, term])
+    if filters.get("industry"):
+        where.append("industry LIKE ?")
+        params.append(f"%{filters['industry']}%")
+    if filters.get("state"):
+        where.append("state LIKE ?")
+        params.append(f"%{filters['state']}%")
+    if filters.get("city"):
+        where.append("city LIKE ?")
+        params.append(f"%{filters['city']}%")
+    if filters.get("employment_type"):
+        where.append("employment_type LIKE ?")
+        params.append(f"%{filters['employment_type']}%")
+    if filters.get("remote"):
+        where.append("work_mode LIKE ?")
+        params.append("%Remote%")
+    for key, column in [
+        ("entry_level", "is_entry_level"),
+        ("veteran_friendly", "is_veteran_friendly"),
+        ("felony_friendly", "is_felony_friendly"),
+        ("no_degree", "no_degree_required"),
+    ]:
+        if filters.get(key):
+            where.append(f"{column} = 1")
+    sql = "SELECT * FROM second_chance_jobs"
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY datetime(date_posted) DESC, id DESC"
+    with get_db() as conn:
+        return conn.execute(sql, params).fetchall()
+
+
+def submit_employer(user_id=None):
+    with get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO fair_chance_employers (
+                company_name, contact_person, email, phone, website, industry,
+                city, state, location, hiring_type, hiring_notes, tags_csv,
+                is_remote, is_entry_level, is_veteran_friendly,
+                is_felony_friendly, is_hiring_now, submitted_by
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                request.form.get("company_name", "").strip(),
+                request.form.get("contact_person", "").strip(),
+                request.form.get("email", "").strip(),
+                request.form.get("phone", "").strip(),
+                request.form.get("website", "").strip(),
+                request.form.get("industry", "").strip(),
+                request.form.get("city", "").strip(),
+                request.form.get("state", "").strip(),
+                request.form.get("location", "").strip(),
+                request.form.get("hiring_type", "").strip(),
+                request.form.get("hiring_notes", "").strip(),
+                csv_from_items(request.form.getlist("tags")),
+                form_bool("remote"),
+                form_bool("entry_level"),
+                form_bool("veteran_friendly"),
+                form_bool("felony_friendly"),
+                form_bool("hiring_now"),
+                user_id,
+            ),
+        )
+
+
+def submit_job(user_id=None):
+    with get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO second_chance_jobs (
+                job_title, company_name, industry, city, state, location,
+                work_mode, pay_range, employment_type, description,
+                requirements, background_notes, apply_link, tags_csv,
+                is_entry_level, is_felony_friendly, is_veteran_friendly,
+                no_degree_required, submitted_by
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                request.form.get("job_title", "").strip(),
+                request.form.get("company_name", "").strip(),
+                request.form.get("industry", "").strip(),
+                request.form.get("city", "").strip(),
+                request.form.get("state", "").strip(),
+                request.form.get("location", "").strip(),
+                request.form.get("work_mode", "").strip(),
+                request.form.get("pay_range", "").strip(),
+                request.form.get("employment_type", "").strip(),
+                request.form.get("description", "").strip(),
+                request.form.get("requirements", "").strip(),
+                request.form.get("background_notes", "").strip(),
+                request.form.get("apply_link", "").strip(),
+                csv_from_items(request.form.getlist("tags")),
+                form_bool("entry_level"),
+                form_bool("felony_friendly"),
+                form_bool("veteran_friendly"),
+                form_bool("no_degree"),
+                user_id,
+            ),
+        )
+
+
+def get_saved_jobs(user_id):
+    if not user_id:
+        return []
+    with get_db() as conn:
+        return conn.execute(
+            """
+            SELECT j.*, sj.status AS saved_status, sj.saved_at, sj.applied_at
+            FROM saved_jobs sj
+            JOIN second_chance_jobs j ON j.id = sj.job_id
+            WHERE sj.user_id = ?
+            ORDER BY datetime(sj.saved_at) DESC
+            """,
+            (user_id,),
+        ).fetchall()
+
+
+def admin_user_required():
+    user = current_user()
+    if not user or not (
+        user.is_admin or user.is_founder or user.email.lower() == FOUNDER_PROFILES[0]["email"]
+    ):
+        return None
+    return user
+
+
 def get_performances(profile_id=None):
     sql = "SELECT * FROM performances"
     params = []
@@ -1868,6 +2288,119 @@ def second_chance_about():
     return render_template("second_chance/about.html")
 
 
+@app.route("/felony-friendly-employers", methods=["GET", "POST"])
+@app.route("/second-chance/felony-friendly-employers", methods=["GET", "POST"])
+def felony_friendly_employers():
+    profile = current_user()
+    if request.method == "POST":
+        if not request.form.get("company_name", "").strip() or not request.form.get("email", "").strip():
+            flash("Company name and contact email are required.")
+        else:
+            submit_employer(profile.id if profile else None)
+            flash("Employer submission received. Shay will review it before it appears publicly.")
+        return redirect(url_for("felony_friendly_employers"))
+
+    filters = workforce_filters()
+    employers = get_employers(filters)
+    return render_template(
+        "second_chance/employers.html",
+        employers=employers,
+        filters=filters,
+        split_csv=split_csv,
+    )
+
+
+@app.route("/jobs", methods=["GET", "POST"])
+@app.route("/second-chance/jobs", methods=["GET", "POST"])
+def jobs():
+    profile = current_user()
+    if request.method == "POST":
+        if not request.form.get("job_title", "").strip() or not request.form.get("company_name", "").strip():
+            flash("Job title and company name are required.")
+        else:
+            submit_job(profile.id if profile else None)
+            flash("Job posting received. Shay will review it before it appears publicly.")
+        return redirect(url_for("jobs"))
+
+    filters = workforce_filters()
+    job_rows = get_jobs(filters)
+    saved_job_ids = set()
+    if profile:
+        saved_job_ids = {row["id"] for row in get_saved_jobs(profile.id)}
+    return render_template(
+        "second_chance/jobs.html",
+        jobs=job_rows,
+        filters=filters,
+        split_csv=split_csv,
+        saved_job_ids=saved_job_ids,
+        profile=profile,
+    )
+
+
+@app.post("/jobs/<int:job_id>/save")
+@login_required
+def save_job(job_id):
+    profile = current_user()
+    with get_db() as conn:
+        job = conn.execute(
+            "SELECT id FROM second_chance_jobs WHERE id = ? AND status = 'approved'",
+            (job_id,),
+        ).fetchone()
+        if not job:
+            flash("That job could not be found.")
+        else:
+            conn.execute(
+                """
+                INSERT INTO saved_jobs (user_id, job_id, status)
+                VALUES (?, ?, 'saved')
+                ON CONFLICT(user_id, job_id)
+                DO UPDATE SET status = CASE
+                    WHEN saved_jobs.status = 'applied' THEN 'applied'
+                    ELSE 'saved'
+                END
+                """,
+                (profile.id, job_id),
+            )
+            track_onboarding_event("first_action_taken", profile.id, {"action": "job_saved"}, conn)
+            flash("Job saved to My Path.")
+    return redirect(request.referrer or url_for("jobs"))
+
+
+@app.post("/jobs/<int:job_id>/applied")
+@login_required
+def mark_job_applied(job_id):
+    profile = current_user()
+    applied_job = None
+    with get_db() as conn:
+        job = conn.execute(
+            "SELECT * FROM second_chance_jobs WHERE id = ? AND status = 'approved'",
+            (job_id,),
+        ).fetchone()
+        if not job:
+            flash("That job could not be found.")
+        else:
+            applied_job = job
+            conn.execute(
+                """
+                INSERT INTO saved_jobs (user_id, job_id, status, applied_at)
+                VALUES (?, ?, 'applied', CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id, job_id)
+                DO UPDATE SET status = 'applied', applied_at = CURRENT_TIMESTAMP
+                """,
+                (profile.id, job_id),
+            )
+    if applied_job:
+        create_second_chance_application(
+            profile.id,
+            applied_job["company_name"],
+            applied_job["job_title"],
+            applied_job["apply_link"],
+            applied_job["background_notes"],
+        )
+        flash("Marked as applied and added to your application tracker.")
+    return redirect(request.referrer or url_for("second_chance_my_path"))
+
+
 @app.route("/my-path", methods=["GET", "POST"])
 @app.route("/second-chance/my-path", methods=["GET", "POST"])
 def second_chance_my_path():
@@ -1912,6 +2445,7 @@ def second_chance_my_path():
     checklist = get_second_chance_checklist(profile.id)
     completed_count = sum(1 for item in checklist if item["completed"])
     applications = get_second_chance_applications(profile.id)
+    saved_jobs = get_saved_jobs(profile.id)
     return render_template(
         "second_chance/my_path.html",
         profile=profile,
@@ -1919,6 +2453,7 @@ def second_chance_my_path():
         completed_count=completed_count,
         total_steps=len(checklist),
         applications=applications,
+        saved_jobs=saved_jobs,
         job_help=SECOND_CHANCE_JOB_HELP,
         features=SECOND_CHANCE_FEATURES,
         resource_groups=SECOND_CHANCE_RESOURCE_GROUPS,
@@ -2758,8 +3293,8 @@ def settings():
 @app.route("/admin")
 @login_required
 def admin_dashboard():
-    user = current_user()
-    if not (user.is_admin or user.is_founder or user.email.lower() == FOUNDER_PROFILES[0]["email"]):
+    user = admin_user_required()
+    if not user:
         return "<h1>Admin access required</h1><p>Log in with the Brent & Co founder account.</p>", 403
 
     platform_filter = request.args.get("app", "all").strip() or "all"
@@ -2775,6 +3310,10 @@ def admin_dashboard():
         active_users = conn.execute(f"SELECT COUNT(*) FROM users u {user_filter_sql} {'AND' if user_filter_sql else 'WHERE'} u.last_login_at != ''", params).fetchone()[0]
         total_profiles = conn.execute(f"SELECT COUNT(*) FROM profiles p JOIN users u ON u.id = p.user_id {user_filter_sql}", params).fetchone()[0]
         total_applications = conn.execute("SELECT COUNT(*) FROM second_chance_applications").fetchone()[0]
+        total_employers = conn.execute("SELECT COUNT(*) FROM fair_chance_employers").fetchone()[0]
+        pending_employers = conn.execute("SELECT COUNT(*) FROM fair_chance_employers WHERE status = 'pending'").fetchone()[0]
+        total_jobs = conn.execute("SELECT COUNT(*) FROM second_chance_jobs").fetchone()[0]
+        pending_jobs = conn.execute("SELECT COUNT(*) FROM second_chance_jobs WHERE status = 'pending'").fetchone()[0]
         total_showcases = conn.execute("SELECT COUNT(*) FROM performances").fetchone()[0]
         total_messages = conn.execute("SELECT COUNT(*) FROM messages").fetchone()[0]
         avg_completion = conn.execute(
@@ -2831,12 +3370,96 @@ def admin_dashboard():
 <title>Brent & Co Admin | Second Chance Careers</title><link rel="stylesheet" href="/static/css/styles.css"></head>
 <body class="page-shell"><main class="admin-dashboard">
 <p class="eyebrow">Brent & Co founder control center</p><h1>Founder Dashboard</h1>
-<p>Filter: {escape(platform_filter)}</p><nav class="profile-actions">{''.join(filters)}</nav>
-<section class="stats-grid"><article><strong>{total_users}</strong><span>Total users</span></article><article><strong>{new_today}</strong><span>New users today</span></article><article><strong>{active_users}</strong><span>Active users</span></article><article><strong>{avg_completion}%</strong><span>Avg profile completion</span></article><article><strong>{total_messages}</strong><span>Messages sent</span></article><article><strong>{total_showcases}</strong><span>Showcases uploaded</span></article><article><strong>0</strong><span>Recipes submitted</span></article><article><strong>0</strong><span>Resumes uploaded</span></article><article><strong>{total_applications}</strong><span>Applications</span></article></section>
+<p>Filter: {escape(platform_filter)}</p><nav class="profile-actions">{''.join(filters)}<a class="sc-button" href="/admin/workforce">Workforce review</a></nav>
+<section class="stats-grid"><article><strong>{total_users}</strong><span>Total users</span></article><article><strong>{new_today}</strong><span>New users today</span></article><article><strong>{active_users}</strong><span>Active users</span></article><article><strong>{avg_completion}%</strong><span>Avg profile completion</span></article><article><strong>{total_messages}</strong><span>Messages sent</span></article><article><strong>{total_showcases}</strong><span>Showcases uploaded</span></article><article><strong>{total_jobs}</strong><span>Job posts</span></article><article><strong>{pending_jobs}</strong><span>Pending jobs</span></article><article><strong>{total_employers}</strong><span>Employers</span></article><article><strong>{pending_employers}</strong><span>Pending employers</span></article><article><strong>{total_applications}</strong><span>Applications</span></article></section>
 <section class="admin-panel"><h2>Onboarding funnel</h2><p>See where users move forward or drop off from first visit to first action.</p><table><thead><tr><th>Step</th><th>Visual</th><th>Users</th><th>Conversion</th><th>Drop-off</th></tr></thead><tbody>{funnel_rows}</tbody></table></section>
 <section class="admin-panel"><h2>Users by app</h2><table><tbody>{app_rows}</tbody></table></section>
 <section class="admin-panel"><h2>User directory</h2><table><thead><tr><th>Name</th><th>Email</th><th>Account type</th><th>Location</th><th>Profile</th><th>Last login</th></tr></thead><tbody>{user_rows}</tbody></table></section>
 </main></body></html>"""
+
+
+@app.route("/admin/workforce", methods=["GET", "POST"])
+@login_required
+def admin_workforce():
+    user = admin_user_required()
+    if not user:
+        return "<h1>Admin access required</h1><p>Log in with the Brent & Co founder account.</p>", 403
+
+    if request.method == "POST":
+        action = request.form.get("action", "").strip()
+        record_id = request.form.get("id", type=int)
+        status = request.form.get("status", "pending").strip()
+        if status not in {"pending", "approved", "rejected"}:
+            status = "pending"
+        with get_db() as conn:
+            if action == "update_employer" and record_id:
+                conn.execute(
+                    """
+                    UPDATE fair_chance_employers
+                    SET company_name = ?, website = ?, industry = ?, city = ?,
+                        state = ?, location = ?, hiring_notes = ?, status = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                    """,
+                    (
+                        request.form.get("company_name", "").strip(),
+                        request.form.get("website", "").strip(),
+                        request.form.get("industry", "").strip(),
+                        request.form.get("city", "").strip(),
+                        request.form.get("state", "").strip(),
+                        request.form.get("location", "").strip(),
+                        request.form.get("hiring_notes", "").strip(),
+                        status,
+                        record_id,
+                    ),
+                )
+                flash("Employer updated.")
+            elif action == "delete_employer" and record_id:
+                conn.execute("DELETE FROM fair_chance_employers WHERE id = ?", (record_id,))
+                flash("Employer removed.")
+            elif action == "update_job" and record_id:
+                conn.execute(
+                    """
+                    UPDATE second_chance_jobs
+                    SET job_title = ?, company_name = ?, industry = ?, city = ?,
+                        state = ?, location = ?, pay_range = ?, employment_type = ?,
+                        apply_link = ?, background_notes = ?, status = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                    """,
+                    (
+                        request.form.get("job_title", "").strip(),
+                        request.form.get("company_name", "").strip(),
+                        request.form.get("industry", "").strip(),
+                        request.form.get("city", "").strip(),
+                        request.form.get("state", "").strip(),
+                        request.form.get("location", "").strip(),
+                        request.form.get("pay_range", "").strip(),
+                        request.form.get("employment_type", "").strip(),
+                        request.form.get("apply_link", "").strip(),
+                        request.form.get("background_notes", "").strip(),
+                        status,
+                        record_id,
+                    ),
+                )
+                flash("Job updated.")
+            elif action == "delete_job" and record_id:
+                conn.execute("DELETE FROM second_chance_jobs WHERE id = ?", (record_id,))
+                flash("Job removed.")
+        return redirect(url_for("admin_workforce"))
+
+    with get_db() as conn:
+        employers = conn.execute(
+            "SELECT * FROM fair_chance_employers ORDER BY CASE status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END, created_at DESC"
+        ).fetchall()
+        jobs = conn.execute(
+            "SELECT * FROM second_chance_jobs ORDER BY CASE status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END, created_at DESC"
+        ).fetchall()
+    return render_template(
+        "second_chance/admin_workforce.html",
+        employers=employers,
+        jobs=jobs,
+    )
 
 
 @app.errorhandler(RequestEntityTooLarge)
@@ -2863,6 +3486,7 @@ def handle_not_found(error):
 
 init_db()
 seed_founder_profile()
+seed_workforce_data()
 
 
 if __name__ == "__main__":

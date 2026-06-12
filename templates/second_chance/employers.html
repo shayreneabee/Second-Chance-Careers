@@ -1,0 +1,215 @@
+{% extends "second_chance/base.html" %}
+
+{% block title %}Felony-Friendly Employers | Second Chance Careers{% endblock %}
+
+{% block head %}
+<style>
+  .workforce-hero,
+  .workforce-panel {
+    margin: 1rem;
+    padding: clamp(1.1rem, 4vw, 2rem);
+    border-radius: 26px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: var(--sc-shadow);
+  }
+
+  .workforce-hero {
+    background:
+      radial-gradient(circle at 85% 15%, rgba(242, 255, 168, 0.58), transparent 16rem),
+      linear-gradient(135deg, #ffffff, #e8f7f2);
+  }
+
+  .workforce-hero h1,
+  .workforce-panel h2 {
+    margin: 0 0 0.7rem;
+    color: var(--sc-teal-dark);
+    font-size: clamp(2rem, 7vw, 4rem);
+    line-height: 0.98;
+  }
+
+  .workforce-hero p,
+  .workforce-panel p,
+  .employer-card p {
+    color: #294c49;
+  }
+
+  .filter-grid,
+  .submission-grid {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .filter-grid input,
+  .submission-grid input,
+  .submission-grid textarea {
+    width: 100%;
+    min-height: 3rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid rgba(4, 69, 67, 0.18);
+    border-radius: 16px;
+    background: #fff;
+    color: var(--sc-text);
+  }
+
+  .check-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin: 0.8rem 0;
+  }
+
+  .check-row label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 999px;
+    background: #eef8f5;
+    color: var(--sc-teal-dark);
+    font-weight: 800;
+  }
+
+  .employer-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .employer-card {
+    display: grid;
+    gap: 0.8rem;
+    padding: 1rem;
+    border: 1px solid rgba(4, 69, 67, 0.12);
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: var(--sc-lift);
+  }
+
+  .employer-card h3 {
+    margin: 0;
+    color: var(--sc-teal-dark);
+    font-size: 1.45rem;
+  }
+
+  .meta-line,
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .meta-line span,
+  .tag-row span {
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    background: #eef8f5;
+    color: var(--sc-teal-dark);
+    font-size: 0.82rem;
+    font-weight: 900;
+  }
+
+  .empty-state {
+    padding: 1rem;
+    border-radius: 18px;
+    background: #fff;
+    color: #294c49;
+    text-align: center;
+  }
+
+  @media (min-width: 780px) {
+    .workforce-hero,
+    .workforce-panel { margin: 1.4rem 2rem; }
+    .filter-grid,
+    .submission-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .submission-grid .full { grid-column: 1 / -1; }
+    .employer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="workforce-hero">
+  <p class="eyebrow">Second-chance hiring</p>
+  <h1>Felony-Friendly Employers</h1>
+  <p>Find fair-chance employers and background-friendly opportunities. Every public listing is reviewed before it appears here.</p>
+</section>
+
+<section class="workforce-panel" aria-label="Employer filters">
+  <h2>Search employers</h2>
+  <form method="get">
+    <div class="filter-grid">
+      <input type="search" name="q" value="{{ filters.q }}" placeholder="Keyword">
+      <input name="industry" value="{{ filters.industry }}" placeholder="Industry">
+      <input name="state" value="{{ filters.state }}" placeholder="State">
+      <input name="city" value="{{ filters.city }}" placeholder="City">
+    </div>
+    <div class="check-row">
+      <label><input type="checkbox" name="remote" value="1" {% if filters.remote %}checked{% endif %}> Remote</label>
+      <label><input type="checkbox" name="entry_level" value="1" {% if filters.entry_level %}checked{% endif %}> Entry-level</label>
+      <label><input type="checkbox" name="veteran_friendly" value="1" {% if filters.veteran_friendly %}checked{% endif %}> Veteran friendly</label>
+      <label><input type="checkbox" name="felony_friendly" value="1" {% if filters.felony_friendly %}checked{% endif %}> Felony friendly</label>
+      <label><input type="checkbox" name="hiring_now" value="1" {% if filters.hiring_now %}checked{% endif %}> Hiring now</label>
+    </div>
+    <button class="sc-button" type="submit">Filter Employers</button>
+  </form>
+</section>
+
+<section class="workforce-panel" aria-label="Employer directory">
+  <h2>Employer directory</h2>
+  <div class="employer-grid">
+    {% for employer in employers %}
+      <article class="employer-card">
+        <div>
+          <h3>{{ employer.company_name }}</h3>
+          <div class="meta-line">
+            {% if employer.industry %}<span>{{ employer.industry }}</span>{% endif %}
+            {% if employer.location or employer.city or employer.state %}<span>{{ employer.location or [employer.city, employer.state]|select|join(', ') }}</span>{% endif %}
+            {% if employer.hiring_type %}<span>{{ employer.hiring_type }}</span>{% endif %}
+          </div>
+        </div>
+        {% if employer.hiring_notes %}<p>{{ employer.hiring_notes }}</p>{% endif %}
+        <div class="tag-row">
+          {% for tag in split_csv(employer.tags_csv) %}
+            <span>{{ tag }}</span>
+          {% endfor %}
+        </div>
+        {% if employer.website %}
+          <a class="sc-button" href="{{ employer.website }}" target="_blank" rel="noopener">Visit / Apply</a>
+        {% endif %}
+      </article>
+    {% else %}
+      <div class="empty-state">No employers match those filters yet. Try a nearby city or fewer filters.</div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="workforce-panel" aria-label="Employer submission">
+  <h2>Are you an employer who hires second-chance applicants?</h2>
+  <p>Submit your company for review. Approved listings help job seekers find background-friendly opportunities without shame-based language.</p>
+  <form method="post">
+    <div class="submission-grid">
+      <input name="company_name" required placeholder="Company name">
+      <input name="contact_person" placeholder="Contact person">
+      <input type="email" name="email" required placeholder="Email">
+      <input name="phone" placeholder="Phone optional">
+      <input name="website" placeholder="Website / apply link">
+      <input name="industry" placeholder="Industries hiring for">
+      <input name="city" placeholder="City">
+      <input name="state" placeholder="State">
+      <input name="location" placeholder="Location">
+      <input name="hiring_type" placeholder="Hiring type">
+      <textarea class="full" name="hiring_notes" rows="4" placeholder="Hiring notes and policy details"></textarea>
+    </div>
+    <div class="check-row">
+      <label><input type="checkbox" name="felony_friendly" value="1"> Felony friendly</label>
+      <label><input type="checkbox" name="veteran_friendly" value="1"> Veteran friendly</label>
+      <label><input type="checkbox" name="entry_level" value="1"> Entry-level</label>
+      <label><input type="checkbox" name="remote" value="1"> Remote options</label>
+      <label><input type="checkbox" name="hiring_now" value="1"> Hiring now</label>
+      <label><input type="checkbox" name="tags" value="Second chance employer"> Second chance employer</label>
+      <label><input type="checkbox" name="tags" value="Case-by-case review"> Case-by-case review</label>
+      <label><input type="checkbox" name="tags" value="No background check listed"> No background check listed</label>
+    </div>
+    <button class="sc-button" type="submit">Submit For Review</button>
+  </form>
+</section>
+{% endblock %}

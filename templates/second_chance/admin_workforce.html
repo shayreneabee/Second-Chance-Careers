@@ -1,0 +1,163 @@
+{% extends "second_chance/base.html" %}
+
+{% block title %}Workforce Review | Second Chance Careers{% endblock %}
+
+{% block head %}
+<style>
+  .admin-workforce {
+    margin: 1rem;
+    padding: clamp(1rem, 4vw, 2rem);
+    border-radius: 26px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: var(--sc-shadow);
+  }
+
+  .admin-workforce h1,
+  .admin-workforce h2 {
+    margin: 0 0 0.8rem;
+    color: var(--sc-teal-dark);
+  }
+
+  .review-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .review-card {
+    display: grid;
+    gap: 0.7rem;
+    padding: 1rem;
+    border: 1px solid rgba(4, 69, 67, 0.12);
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: var(--sc-lift);
+  }
+
+  .review-card.pending { border-color: rgba(217, 164, 65, 0.55); }
+  .review-card.rejected { opacity: 0.74; }
+
+  .review-card form {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .review-card input,
+  .review-card textarea,
+  .review-card select {
+    width: 100%;
+    min-height: 2.7rem;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid rgba(4, 69, 67, 0.18);
+    border-radius: 14px;
+    background: #fff;
+    color: var(--sc-text);
+  }
+
+  .review-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .status-pill {
+    width: max-content;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    background: #eef8f5;
+    color: var(--sc-teal-dark);
+    font-weight: 900;
+    text-transform: capitalize;
+  }
+
+  @media (min-width: 880px) {
+    .admin-workforce { margin: 1.4rem 2rem; }
+    .review-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="admin-workforce">
+  <p class="eyebrow">Founder review</p>
+  <h1>Workforce Submissions</h1>
+  <p>Approve, edit, reject, or remove employer and job submissions before they appear publicly.</p>
+  <a class="sc-button" href="{{ url_for('admin_dashboard') }}">Back To Admin</a>
+</section>
+
+<section class="admin-workforce" aria-label="Employer review">
+  <h2>Employers</h2>
+  <div class="review-grid">
+    {% for employer in employers %}
+      <article class="review-card {{ employer.status }}">
+        <span class="status-pill">{{ employer.status }}</span>
+        <form method="post">
+          <input type="hidden" name="action" value="update_employer">
+          <input type="hidden" name="id" value="{{ employer.id }}">
+          <input name="company_name" value="{{ employer.company_name }}" placeholder="Company name">
+          <input name="website" value="{{ employer.website }}" placeholder="Website">
+          <input name="industry" value="{{ employer.industry }}" placeholder="Industry">
+          <input name="city" value="{{ employer.city }}" placeholder="City">
+          <input name="state" value="{{ employer.state }}" placeholder="State">
+          <input name="location" value="{{ employer.location }}" placeholder="Location">
+          <textarea name="hiring_notes" rows="3" placeholder="Hiring notes">{{ employer.hiring_notes }}</textarea>
+          <select name="status">
+            {% for status in ["pending", "approved", "rejected"] %}
+              <option value="{{ status }}" {% if employer.status == status %}selected{% endif %}>{{ status|title }}</option>
+            {% endfor %}
+          </select>
+          <div class="review-actions">
+            <button class="sc-button" type="submit">Save</button>
+          </div>
+        </form>
+        <form method="post">
+          <input type="hidden" name="action" value="delete_employer">
+          <input type="hidden" name="id" value="{{ employer.id }}">
+          <button class="sc-button" type="submit">Remove</button>
+        </form>
+      </article>
+    {% else %}
+      <p>No employer submissions yet.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="admin-workforce" aria-label="Job review">
+  <h2>Jobs</h2>
+  <div class="review-grid">
+    {% for job in jobs %}
+      <article class="review-card {{ job.status }}">
+        <span class="status-pill">{{ job.status }}</span>
+        <form method="post">
+          <input type="hidden" name="action" value="update_job">
+          <input type="hidden" name="id" value="{{ job.id }}">
+          <input name="job_title" value="{{ job.job_title }}" placeholder="Job title">
+          <input name="company_name" value="{{ job.company_name }}" placeholder="Company name">
+          <input name="industry" value="{{ job.industry }}" placeholder="Industry">
+          <input name="city" value="{{ job.city }}" placeholder="City">
+          <input name="state" value="{{ job.state }}" placeholder="State">
+          <input name="location" value="{{ job.location }}" placeholder="Location">
+          <input name="pay_range" value="{{ job.pay_range }}" placeholder="Pay range">
+          <input name="employment_type" value="{{ job.employment_type }}" placeholder="Employment type">
+          <input name="apply_link" value="{{ job.apply_link }}" placeholder="Apply link">
+          <textarea name="background_notes" rows="3" placeholder="Background notes">{{ job.background_notes }}</textarea>
+          <select name="status">
+            {% for status in ["pending", "approved", "rejected"] %}
+              <option value="{{ status }}" {% if job.status == status %}selected{% endif %}>{{ status|title }}</option>
+            {% endfor %}
+          </select>
+          <div class="review-actions">
+            <button class="sc-button" type="submit">Save</button>
+          </div>
+        </form>
+        <form method="post">
+          <input type="hidden" name="action" value="delete_job">
+          <input type="hidden" name="id" value="{{ job.id }}">
+          <button class="sc-button" type="submit">Remove</button>
+        </form>
+      </article>
+    {% else %}
+      <p>No job submissions yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

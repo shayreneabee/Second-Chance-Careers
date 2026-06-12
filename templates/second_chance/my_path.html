@@ -228,6 +228,12 @@
     font-weight: 900;
   }
 
+  .saved-job-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
   .status-form {
     display: grid;
     gap: 0.45rem;
@@ -539,6 +545,40 @@
     </ul>
   {% else %}
     <p class="empty-state">No applications saved yet. Add the first one after you apply or find a job you want to track.</p>
+  {% endif %}
+</section>
+
+<section class="applications-card">
+  <h2>Saved Jobs</h2>
+  {% if saved_jobs %}
+    <ul class="application-list">
+      {% for job in saved_jobs %}
+        <li class="application-item">
+          <div>
+            <h3>{{ job.job_title }}</h3>
+            <p>{{ job.company_name }}{% if job.location or job.city or job.state %} · {{ job.location or [job.city, job.state]|select|join(', ') }}{% endif %}</p>
+          </div>
+          <div class="application-meta">
+            <span>Status: {{ job.saved_status|title }}</span>
+            {% if job.pay_range %}<span>{{ job.pay_range }}</span>{% endif %}
+            {% if job.employment_type %}<span>{{ job.employment_type }}</span>{% endif %}
+          </div>
+          <div class="saved-job-actions">
+            {% if job.apply_link %}
+              <a class="sc-button" href="{{ job.apply_link }}" target="_blank" rel="noopener">Apply Link</a>
+            {% endif %}
+            <form method="post" action="{{ url_for('mark_job_applied', job_id=job.id) }}">
+              <button class="sc-button" type="submit">Mark Applied</button>
+            </form>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty-state">No saved jobs yet. Browse the job board and save opportunities you want to track.</p>
+    <div style="margin-top:1rem;">
+      <a class="sc-button" href="{{ url_for('jobs') }}">Browse Jobs</a>
+    </div>
   {% endif %}
 </section>
 

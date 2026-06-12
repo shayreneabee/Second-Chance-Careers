@@ -285,6 +285,32 @@
   </p>
 </section>
 
+<section class="support-section" aria-label="Workforce tools">
+  <h2 class="support-heading">Find real next steps</h2>
+  <div class="feature-grid">
+    <article class="feature-card">
+      <h3>Felony-Friendly Employers</h3>
+      <p>Browse fair-chance employers, second-chance hiring notes, and companies that review applicants with dignity.</p>
+      <a class="sc-button" href="{{ url_for('felony_friendly_employers') }}">Open Employers</a>
+    </article>
+    <article class="feature-card">
+      <h3>Job Board</h3>
+      <p>Search reentry-friendly jobs, save opportunities, mark applications, and keep your next moves organized.</p>
+      <a class="sc-button" href="{{ url_for('jobs') }}">Open Jobs</a>
+    </article>
+    <article class="feature-card">
+      <h3>Resume Help</h3>
+      <p>Build stronger documents, prepare for interviews, and explain your story with confidence.</p>
+      <a class="sc-button" href="{{ url_for('second_chance_resource_page', slug='resume-interview') }}">Resume Help</a>
+    </article>
+    <article class="feature-card">
+      <h3>Career Checklist</h3>
+      <p>Use My Path to track documents, applications, saved jobs, and progress without losing your place.</p>
+      <a class="sc-button" href="{{ url_for('second_chance_my_path') }}">Open My Path</a>
+    </article>
+  </div>
+</section>
+
 <section class="category-row" aria-label="Career paths">
   {% for category in categories %}
     <a class="category-card" href="{{ url_for('second_chance_category_page', slug=category.slug) }}">

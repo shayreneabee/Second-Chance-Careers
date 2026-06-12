@@ -1,0 +1,247 @@
+{% extends "second_chance/base.html" %}
+
+{% block title %}Job Board | Second Chance Careers{% endblock %}
+
+{% block head %}
+<style>
+  .jobs-hero,
+  .jobs-panel {
+    margin: 1rem;
+    padding: clamp(1.1rem, 4vw, 2rem);
+    border-radius: 26px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: var(--sc-shadow);
+  }
+
+  .jobs-hero {
+    background:
+      radial-gradient(circle at 15% 20%, rgba(123, 191, 134, 0.28), transparent 16rem),
+      linear-gradient(135deg, #ffffff, #e8f7f2);
+  }
+
+  .jobs-hero h1,
+  .jobs-panel h2 {
+    margin: 0 0 0.7rem;
+    color: var(--sc-teal-dark);
+    font-size: clamp(2rem, 7vw, 4rem);
+    line-height: 0.98;
+  }
+
+  .jobs-hero p,
+  .jobs-panel p,
+  .job-card p {
+    color: #294c49;
+  }
+
+  .filter-grid,
+  .submit-grid {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .filter-grid input,
+  .filter-grid select,
+  .submit-grid input,
+  .submit-grid select,
+  .submit-grid textarea {
+    width: 100%;
+    min-height: 3rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid rgba(4, 69, 67, 0.18);
+    border-radius: 16px;
+    background: #fff;
+    color: var(--sc-text);
+  }
+
+  .check-row,
+  .job-actions,
+  .tag-row,
+  .meta-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .check-row { margin: 0.8rem 0; }
+
+  .check-row label,
+  .tag-row span,
+  .meta-line span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.42rem 0.7rem;
+    border-radius: 999px;
+    background: #eef8f5;
+    color: var(--sc-teal-dark);
+    font-size: 0.84rem;
+    font-weight: 900;
+  }
+
+  .job-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .job-card {
+    display: grid;
+    gap: 0.85rem;
+    padding: 1rem;
+    border: 1px solid rgba(4, 69, 67, 0.12);
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: var(--sc-lift);
+  }
+
+  .job-card h3 {
+    margin: 0;
+    color: var(--sc-teal-dark);
+    font-size: 1.45rem;
+  }
+
+  .job-card .company {
+    margin: -0.35rem 0 0;
+    color: #4f7b56;
+    font-weight: 900;
+  }
+
+  .job-actions form { margin: 0; }
+
+  .empty-state {
+    padding: 1rem;
+    border-radius: 18px;
+    background: #fff;
+    color: #294c49;
+    text-align: center;
+  }
+
+  @media (min-width: 780px) {
+    .jobs-hero,
+    .jobs-panel { margin: 1.4rem 2rem; }
+    .filter-grid,
+    .submit-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .submit-grid .full { grid-column: 1 / -1; }
+    .job-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="jobs-hero">
+  <p class="eyebrow">Reentry-friendly jobs</p>
+  <h1>Job Board</h1>
+  <p>Browse fair-chance opportunities, save jobs to My Path, and mark applications as applied when you are ready.</p>
+</section>
+
+<section class="jobs-panel" aria-label="Job filters">
+  <h2>Search jobs</h2>
+  <form method="get">
+    <div class="filter-grid">
+      <input type="search" name="q" value="{{ filters.q }}" placeholder="Keyword, company, or role">
+      <input name="industry" value="{{ filters.industry }}" placeholder="Industry">
+      <input name="state" value="{{ filters.state }}" placeholder="State">
+      <input name="city" value="{{ filters.city }}" placeholder="City">
+      <select name="employment_type">
+        <option value="">Employment type</option>
+        {% for option in ["Full-time", "Part-time", "Contract", "Temporary"] %}
+          <option value="{{ option }}" {% if filters.employment_type == option %}selected{% endif %}>{{ option }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="check-row">
+      <label><input type="checkbox" name="remote" value="1" {% if filters.remote %}checked{% endif %}> Remote</label>
+      <label><input type="checkbox" name="entry_level" value="1" {% if filters.entry_level %}checked{% endif %}> Entry-level</label>
+      <label><input type="checkbox" name="felony_friendly" value="1" {% if filters.felony_friendly %}checked{% endif %}> Felony friendly</label>
+      <label><input type="checkbox" name="veteran_friendly" value="1" {% if filters.veteran_friendly %}checked{% endif %}> Veteran friendly</label>
+      <label><input type="checkbox" name="no_degree" value="1" {% if filters.no_degree %}checked{% endif %}> No degree required</label>
+    </div>
+    <button class="sc-button" type="submit">Filter Jobs</button>
+  </form>
+</section>
+
+<section class="jobs-panel" aria-label="Job listings">
+  <h2>Open opportunities</h2>
+  <div class="job-grid">
+    {% for job in jobs %}
+      <article class="job-card">
+        <div>
+          <h3>{{ job.job_title }}</h3>
+          <p class="company">{{ job.company_name }}</p>
+        </div>
+        <div class="meta-line">
+          {% if job.location or job.city or job.state %}<span>{{ job.location or [job.city, job.state]|select|join(', ') }}</span>{% endif %}
+          {% if job.work_mode %}<span>{{ job.work_mode }}</span>{% endif %}
+          {% if job.pay_range %}<span>{{ job.pay_range }}</span>{% endif %}
+          {% if job.employment_type %}<span>{{ job.employment_type }}</span>{% endif %}
+        </div>
+        {% if job.description %}<p>{{ job.description }}</p>{% endif %}
+        {% if job.background_notes %}<p><strong>Background note:</strong> {{ job.background_notes }}</p>{% endif %}
+        <div class="tag-row">
+          {% for tag in split_csv(job.tags_csv) %}
+            <span>{{ tag }}</span>
+          {% endfor %}
+        </div>
+        <div class="job-actions">
+          {% if job.apply_link %}
+            <a class="sc-button" href="{{ job.apply_link }}" target="_blank" rel="noopener">Apply</a>
+          {% endif %}
+          {% if profile %}
+            <form method="post" action="{{ url_for('save_job', job_id=job.id) }}">
+              <button class="sc-button" type="submit">{% if job.id in saved_job_ids %}Saved{% else %}Save Job{% endif %}</button>
+            </form>
+            <form method="post" action="{{ url_for('mark_job_applied', job_id=job.id) }}">
+              <button class="sc-button" type="submit">Mark Applied</button>
+            </form>
+          {% else %}
+            <a class="sc-button" href="{{ url_for('second_chance_login') }}">Sign In To Save</a>
+          {% endif %}
+        </div>
+      </article>
+    {% else %}
+      <div class="empty-state">No jobs match those filters yet. Try another location or remove one filter.</div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="jobs-panel" aria-label="Job submission">
+  <h2>Submit a job posting</h2>
+  <p>Employers can submit reentry-friendly opportunities for review. Approved jobs appear publicly after admin approval.</p>
+  <form method="post">
+    <div class="submit-grid">
+      <input name="job_title" required placeholder="Job title">
+      <input name="company_name" required placeholder="Company name">
+      <input name="industry" placeholder="Industry">
+      <input name="city" placeholder="City">
+      <input name="state" placeholder="State">
+      <input name="location" placeholder="Location">
+      <select name="work_mode">
+        <option value="">Remote / hybrid / in-person</option>
+        <option>Remote</option>
+        <option>Hybrid</option>
+        <option>In-person</option>
+      </select>
+      <input name="pay_range" placeholder="Pay range">
+      <select name="employment_type">
+        <option value="">Employment type</option>
+        <option>Full-time</option>
+        <option>Part-time</option>
+        <option>Contract</option>
+        <option>Temporary</option>
+      </select>
+      <input class="full" name="apply_link" placeholder="Apply link">
+      <textarea class="full" name="description" rows="4" placeholder="Job description"></textarea>
+      <textarea class="full" name="requirements" rows="4" placeholder="Requirements"></textarea>
+      <textarea class="full" name="background_notes" rows="4" placeholder="Background check notes"></textarea>
+    </div>
+    <div class="check-row">
+      <label><input type="checkbox" name="felony_friendly" value="1"> Felony friendly</label>
+      <label><input type="checkbox" name="veteran_friendly" value="1"> Veteran friendly</label>
+      <label><input type="checkbox" name="entry_level" value="1"> Entry-level</label>
+      <label><input type="checkbox" name="no_degree" value="1"> No degree required</label>
+      <label><input type="checkbox" name="tags" value="Second-chance hiring"> Second-chance hiring</label>
+      <label><input type="checkbox" name="tags" value="Case-by-case review"> Case-by-case review</label>
+    </div>
+    <button class="sc-button" type="submit">Submit For Review</button>
+  </form>
+</section>
+{% endblock %}
