@@ -684,6 +684,66 @@ def funnel_metrics(conn, app_name="second-chance"):
     return metrics
 
 
+def analytics_summary(conn, app_name="second-chance"):
+    periods = [
+        ("Today", "date(created_at) = date('now')"),
+        ("This Week", "date(created_at) >= date('now', '-6 days')"),
+        ("This Month", "date(created_at) >= date('now', 'start of month')"),
+        ("All Time", "1 = 1"),
+    ]
+    summary = []
+    for label, clause in periods:
+        page_visits = conn.execute(
+            f"""
+            SELECT COUNT(*)
+            FROM onboarding_events
+            WHERE app_name = ?
+              AND event_name = 'landing_page_view'
+              AND {clause}
+            """,
+            (app_name,),
+        ).fetchone()[0]
+        unique_visitors = conn.execute(
+            f"""
+            SELECT COUNT(DISTINCT COALESCE(CAST(user_id AS TEXT), session_id))
+            FROM onboarding_events
+            WHERE app_name = ?
+              AND {clause}
+            """,
+            (app_name,),
+        ).fetchone()[0]
+        signup_clicks = conn.execute(
+            f"""
+            SELECT COUNT(*)
+            FROM onboarding_events
+            WHERE app_name = ?
+              AND event_name = 'signup_click'
+              AND {clause}
+            """,
+            (app_name,),
+        ).fetchone()[0]
+        accounts_created = conn.execute(
+            f"""
+            SELECT COUNT(*)
+            FROM onboarding_events
+            WHERE app_name = ?
+              AND event_name = 'account_created'
+              AND {clause}
+            """,
+            (app_name,),
+        ).fetchone()[0]
+        summary.append(
+            {
+                "label": label,
+                "page_visits": page_visits,
+                "unique_visitors": unique_visitors,
+                "signup_clicks": signup_clicks,
+                "accounts_created": accounts_created,
+            }
+        )
+    return summary
+
+
 def username_slug(value, fallback="member"):
     base = re.sub(r"[^a-z0-9]+", "-", (value or "").strip().lower()).strip("-")
     return base or fallback
@@ -3320,6 +3380,7 @@ def admin_dashboard():
             f"SELECT COALESCE(ROUND(AVG(p.profile_completion_percentage)), 0) FROM profiles p JOIN users u ON u.id = p.user_id {user_filter_sql}",
             params,
         ).fetchone()[0]
+        analytics_periods = analytics_summary(conn)
         funnel = funnel_metrics(conn)
         latest_users = conn.execute(
             f"""
@@ -3336,13 +3397,37 @@ def admin_dashboard():
             "SELECT app_name, COUNT(*) AS total FROM app_memberships GROUP BY app_name ORDER BY app_name"
         ).fetchall()
 
+    updated_at = time.strftime("%Y-%m-%d %H:%M:%S %Z")
     filters = ['<a class="sc-button" href="/admin?app=all">All apps</a>'] + [
         f'<a class="sc-button" href="/admin?app={escape(row["app_name"])}">{escape(row["app_name"])}</a>'
         for row in apps
     ]
+    expected_apps = [
+        ("find-the-beat", "Find The Beat"),
+        ("lets-cook", "Let's Cook"),
+        ("second-chance", "Second Chance"),
+        ("beu", "BEU"),
+    ]
+    app_counts = {row["app_name"]: row["total"] for row in apps}
     app_rows = "".join(
-        f"<tr><td>{escape(row['app_name'])}</td><td>{row['total']}</td></tr>" for row in apps
-    ) or "<tr><td colspan='2'>No app memberships yet</td></tr>"
+        f"<tr><td>{escape(label)}</td><td>{app_counts.get(key, 0)}</td><td>app_memberships</td></tr>"
+        for key, label in expected_apps
+    )
+    extra_app_rows = "".join(
+        f"<tr><td>{escape(row['app_name'])}</td><td>{row['total']}</td><td>app_memberships</td></tr>"
+        for row in apps
+        if row["app_name"] not in {key for key, _label in expected_apps}
+    )
+    period_rows = "".join(
+        "<tr>"
+        f"<td>{escape(row['label'])}</td>"
+        f"<td>{row['page_visits']}</td>"
+        f"<td>{row['unique_visitors']}</td>"
+        f"<td>{row['signup_clicks']}</td>"
+        f"<td>{row['accounts_created']}</td>"
+        "</tr>"
+        for row in analytics_periods
+    )
     max_funnel = max([row["total"] for row in funnel] + [1])
     funnel_rows = "".join(
         "<tr>"
@@ -3370,10 +3455,11 @@ def admin_dashboard():
 <title>Brent & Co Admin | Second Chance Careers</title><link rel="stylesheet" href="/static/css/styles.css"></head>
 <body class="page-shell"><main class="admin-dashboard">
 <p class="eyebrow">Brent & Co founder control center</p><h1>Founder Dashboard</h1>
-<p>Filter: {escape(platform_filter)}</p><nav class="profile-actions">{''.join(filters)}<a class="sc-button" href="/admin/workforce">Workforce review</a></nav>
+<p>Filter: {escape(platform_filter)} · Last updated: {escape(updated_at)} · Refresh: reload page</p><nav class="profile-actions">{''.join(filters)}<a class="sc-button" href="/admin/workforce">Workforce review</a></nav>
 <section class="stats-grid"><article><strong>{total_users}</strong><span>Total users</span></article><article><strong>{new_today}</strong><span>New users today</span></article><article><strong>{active_users}</strong><span>Active users</span></article><article><strong>{avg_completion}%</strong><span>Avg profile completion</span></article><article><strong>{total_messages}</strong><span>Messages sent</span></article><article><strong>{total_showcases}</strong><span>Showcases uploaded</span></article><article><strong>{total_jobs}</strong><span>Job posts</span></article><article><strong>{pending_jobs}</strong><span>Pending jobs</span></article><article><strong>{total_employers}</strong><span>Employers</span></article><article><strong>{pending_employers}</strong><span>Pending employers</span></article><article><strong>{total_applications}</strong><span>Applications</span></article></section>
+<section class="admin-panel"><h2>Analytics periods</h2><p>Dashboard analytics use the local onboarding_events table. Page visits count Second Chance landing-page views; unique visitors count distinct logged-in users or anonymous sessions. These numbers update when the page reloads.</p><table><thead><tr><th>Period</th><th>Page visits</th><th>Unique visitors</th><th>Signup clicks</th><th>Accounts created</th></tr></thead><tbody>{period_rows}</tbody></table></section>
 <section class="admin-panel"><h2>Onboarding funnel</h2><p>See where users move forward or drop off from first visit to first action.</p><table><thead><tr><th>Step</th><th>Visual</th><th>Users</th><th>Conversion</th><th>Drop-off</th></tr></thead><tbody>{funnel_rows}</tbody></table></section>
-<section class="admin-panel"><h2>Users by app</h2><table><tbody>{app_rows}</tbody></table></section>
+<section class="admin-panel"><h2>Users by app</h2><p>Counts come from the real app_memberships table. Zero means this Second Chance database has not received or created a membership for that app yet.</p><table><thead><tr><th>App</th><th>Users</th><th>Source</th></tr></thead><tbody>{app_rows}{extra_app_rows}</tbody></table></section>
 <section class="admin-panel"><h2>User directory</h2><table><thead><tr><th>Name</th><th>Email</th><th>Account type</th><th>Location</th><th>Profile</th><th>Last login</th></tr></thead><tbody>{user_rows}</tbody></table></section>
 </main></body></html>"""
 
