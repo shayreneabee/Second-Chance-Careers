@@ -237,6 +237,89 @@
       line-height: 1.65;
     }
 
+    .mission-values {
+      display: grid;
+      gap: 1rem;
+      margin: 1.2rem 1rem;
+      padding: clamp(1rem, 3vw, 1.5rem);
+      border: 1px solid rgba(4, 69, 67, 0.14);
+      border-radius: var(--sc-radius);
+      background:
+        radial-gradient(circle at 86% 12%, rgba(242, 255, 168, 0.42), transparent 16rem),
+        rgba(255, 255, 255, 0.9);
+      box-shadow: var(--sc-shadow);
+    }
+
+    .mv-header h2 {
+      margin: 0.2rem 0 0.5rem;
+      color: var(--sc-teal-dark);
+      font-size: clamp(2rem, 7vw, 3.4rem);
+      line-height: 0.98;
+    }
+
+    .mv-tagline {
+      display: inline-flex;
+      width: fit-content;
+      margin: 0.35rem 0 0;
+      padding: 0.5rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(15, 111, 107, 0.1);
+      color: var(--sc-teal-dark);
+      font-weight: 900;
+    }
+
+    .mv-grid {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .mv-card {
+      display: grid;
+      gap: 0.55rem;
+      padding: 1rem;
+      border: 1px solid rgba(4, 69, 67, 0.12);
+      border-radius: 18px;
+      background: rgba(246, 255, 252, 0.92);
+      box-shadow: var(--sc-lift);
+    }
+
+    .mv-card span {
+      color: var(--sc-teal-dark);
+      font-size: 0.74rem;
+      font-weight: 950;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    .mv-card h3 {
+      margin: 0;
+      color: var(--sc-teal-dark);
+      font-size: 1.28rem;
+      line-height: 1.08;
+    }
+
+    .mv-card p {
+      margin: 0;
+      color: #294c49;
+      line-height: 1.58;
+    }
+
+    .value-list {
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    .value-list div {
+      padding: 0.7rem;
+      border-radius: 14px;
+      background: rgba(217, 240, 235, 0.72);
+    }
+
+    .value-list strong {
+      display: block;
+      color: var(--sc-teal-dark);
+    }
+
     .sc-bottom {
       position: fixed;
       left: 50%;
@@ -356,6 +439,14 @@
       .founder-section {
         grid-template-columns: minmax(16rem, 24rem) 1fr;
         align-items: center;
+      }
+
+      .mission-values {
+        margin: 1.4rem 2rem;
+      }
+
+      .mv-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
 
@@ -529,9 +620,9 @@
         <a class="sc-desktop-link {% if request.path in ['/jobs', '/second-chance/jobs'] %}active{% endif %}" href="{{ url_for('jobs') }}">Jobs</a>
         <a class="sc-desktop-link {% if request.path.startswith('/second-chance/profile') or request.path.startswith('/profile') %}active{% endif %}" href="{{ url_for('second_chance_profile') }}">Profile</a>
         <a class="sc-desktop-link {% if request.path in ['/my-path', '/second-chance/my-path'] %}active{% endif %}" href="{{ url_for('second_chance_my_path') }}">My Path</a>
-        <a class="sc-desktop-link" href="https://findthebeatmusic.com/sso/start?app=lets-cook">Let's Cook</a>
-        <a class="sc-desktop-link" href="https://findthebeatmusic.com/sso/start?app=find-the-beat">Find The Beat</a>
-        <a class="sc-desktop-link" href="https://findthebeatmusic.com/sso/start?app=beu">BEU</a>
+        <a class="sc-desktop-link" href="https://brentandco.org/sso/start?app=lets-cook">Let's Cook</a>
+        <a class="sc-desktop-link" href="https://brentandco.org/sso/start?app=find-the-beat">Find The Beat</a>
+        <a class="sc-desktop-link" href="https://beutravel.org/">BEU</a>
       </nav>
     </header>
 
