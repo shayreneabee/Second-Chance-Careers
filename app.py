@@ -45,7 +45,8 @@ SECOND_CHANCE_URL = os.getenv(
     "https://secondchancecareers.org/",
 )
 SSO_SHARED_SECRET = os.getenv("SSO_SHARED_SECRET", "dev-sso-change-me")
-BRENT_SSO_URL = os.getenv("BRENT_SSO_URL", "https://findthebeatmusic.com/sso/start")
+BRENT_SSO_URL = os.getenv("BRENT_SSO_URL", "https://www.brentandco.org/sso/start")
+DEBUG_SSO = os.getenv("DEBUG_SSO", "").strip().lower() in {"1", "true", "yes", "on"}
 PASSWORD_RESET_SECONDS = int(os.getenv("PASSWORD_RESET_SECONDS", "3600"))
 AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
 OWNER_AUTH_PROVIDER = os.getenv("BRENT_OWNER_AUTH_PROVIDER", "brent-core")
@@ -593,6 +594,19 @@ app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "0") ==
 
 if os.getenv("TRUST_PROXY", "1") == "1":
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+
+def log_sso_debug(event, app_name="second-chance", callback_url=""):
+    if not DEBUG_SSO:
+        return
+    app.logger.info(
+        "SSO %s app=%s BRENT_SSO_URL=%s SSO_SHARED_SECRET_PRESENT=%s callback=%s",
+        event,
+        app_name,
+        BRENT_SSO_URL,
+        bool(SSO_SHARED_SECRET),
+        callback_url,
+    )
 
 
 for folder in (INSTANCE_DIR, UPLOAD_DIR, PHOTO_DIR, VIDEO_DIR):
@@ -2628,11 +2642,14 @@ def second_chance_signup():
 def sso_login():
     next_path = request.args.get("next") or url_for("second_chance_profile")
     query = urlencode({"app": "second-chance", "next": next_path})
+    log_sso_debug("login_redirect", callback_url=f"{request.url_root.rstrip('/')}/sso/consume")
     return redirect(f"{BRENT_SSO_URL}?{query}")
 
 
+@app.route("/sso/callback")
 @app.route("/sso/consume")
 def sso_consume():
+    log_sso_debug("consume", callback_url=f"{request.url_root.rstrip('/')}/sso/consume")
     payload = verify_sso_token(request.args.get("token", ""))
     if not payload:
         flash("That Brent & Co sign-in link expired. Please try again.")

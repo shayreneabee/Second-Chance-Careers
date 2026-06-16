@@ -19,3 +19,9 @@ services:
         value: "1"
       - key: TRUST_PROXY
         value: "1"
+      - key: BRENT_SSO_URL
+        value: https://www.brentandco.org/sso/start
+      - key: SSO_SHARED_SECRET
+        sync: false
+      - key: DEBUG_SSO
+        value: "0"
