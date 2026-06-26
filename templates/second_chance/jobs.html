@@ -154,6 +154,13 @@
       <label><input type="checkbox" name="felony_friendly" value="1" {% if filters.felony_friendly %}checked{% endif %}> Felony friendly</label>
       <label><input type="checkbox" name="veteran_friendly" value="1" {% if filters.veteran_friendly %}checked{% endif %}> Veteran friendly</label>
       <label><input type="checkbox" name="no_degree" value="1" {% if filters.no_degree %}checked{% endif %}> No degree required</label>
+      <label><input type="checkbox" name="cdl" value="1" {% if filters.cdl %}checked{% endif %}> CDL</label>
+      <label><input type="checkbox" name="warehouse" value="1" {% if filters.warehouse %}checked{% endif %}> Warehouse</label>
+      <label><input type="checkbox" name="healthcare" value="1" {% if filters.healthcare %}checked{% endif %}> Healthcare</label>
+      <label><input type="checkbox" name="tech" value="1" {% if filters.tech %}checked{% endif %}> Tech</label>
+      <label><input type="checkbox" name="customer_service" value="1" {% if filters.customer_service %}checked{% endif %}> Customer service</label>
+      <label><input type="checkbox" name="food_service" value="1" {% if filters.food_service %}checked{% endif %}> Food service</label>
+      <label><input type="checkbox" name="skilled_trades" value="1" {% if filters.skilled_trades %}checked{% endif %}> Skilled trades</label>
     </div>
     <button class="sc-button" type="submit">Filter Jobs</button>
   </form>
@@ -173,6 +180,7 @@
           {% if job.work_mode %}<span>{{ job.work_mode }}</span>{% endif %}
           {% if job.pay_range %}<span>{{ job.pay_range }}</span>{% endif %}
           {% if job.employment_type %}<span>{{ job.employment_type }}</span>{% endif %}
+          {% if job.second_chance_score is defined %}<span>Second Chance Score {{ job.second_chance_score or 0 }}</span>{% endif %}
         </div>
         {% if job.description %}<p>{{ job.description }}</p>{% endif %}
         {% if job.background_notes %}<p><strong>Background note:</strong> {{ job.background_notes }}</p>{% endif %}

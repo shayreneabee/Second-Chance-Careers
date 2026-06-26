@@ -28,6 +28,8 @@ from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 
+from job_pipeline.sync import ensure_job_pipeline_schema, sync_jobs as run_job_sync
+
 
 BASE_DIR = Path(__file__).resolve().parent
 INSTANCE_DIR = Path(os.getenv("INSTANCE_DIR", BASE_DIR / "instance"))
@@ -1177,6 +1179,7 @@ def init_db():
             )
             """
         )
+        ensure_job_pipeline_schema(conn)
 
         existing_columns = {
             row["name"] for row in conn.execute("PRAGMA table_info(users)").fetchall()
@@ -2077,6 +2080,13 @@ def workforce_filters():
         "felony_friendly": request.args.get("felony_friendly") == "1",
         "hiring_now": request.args.get("hiring_now") == "1",
         "no_degree": request.args.get("no_degree") == "1",
+        "cdl": request.args.get("cdl") == "1",
+        "warehouse": request.args.get("warehouse") == "1",
+        "healthcare": request.args.get("healthcare") == "1",
+        "tech": request.args.get("tech") == "1",
+        "customer_service": request.args.get("customer_service") == "1",
+        "food_service": request.args.get("food_service") == "1",
+        "skilled_trades": request.args.get("skilled_trades") == "1",
     }
 
 
@@ -2124,12 +2134,13 @@ def get_jobs(filters=None, status="approved"):
     if status:
         where.append("status = ?")
         params.append(status)
+    where.append("COALESCE(is_active, 1) = 1")
     if filters.get("q"):
         term = f"%{filters['q']}%"
         where.append(
-            "(job_title LIKE ? OR company_name LIKE ? OR description LIKE ? OR requirements LIKE ? OR tags_csv LIKE ?)"
+            "(job_title LIKE ? OR company_name LIKE ? OR description LIKE ? OR requirements LIKE ? OR tags_csv LIKE ? OR location LIKE ?)"
         )
-        params.extend([term, term, term, term, term])
+        params.extend([term, term, term, term, term, term])
     if filters.get("industry"):
         where.append("industry LIKE ?")
         params.append(f"%{filters['industry']}%")
@@ -2153,10 +2164,26 @@ def get_jobs(filters=None, status="approved"):
     ]:
         if filters.get(key):
             where.append(f"{column} = 1")
+    for filter_key, needles in {
+        "cdl": ["CDL", "commercial driver"],
+        "warehouse": ["warehouse", "distribution", "forklift"],
+        "healthcare": ["healthcare", "medical", "patient"],
+        "tech": ["tech", "software", "IT support"],
+        "customer_service": ["customer service", "call center"],
+        "food_service": ["food service", "restaurant", "kitchen"],
+        "skilled_trades": ["skilled trades", "construction", "HVAC", "welder"],
+    }.items():
+        if filters.get(filter_key):
+            clauses = []
+            for needle in needles:
+                clauses.append("(tags_csv LIKE ? OR industry LIKE ? OR job_title LIKE ? OR description LIKE ?)")
+                term = f"%{needle}%"
+                params.extend([term, term, term, term])
+            where.append("(" + " OR ".join(clauses) + ")")
     sql = "SELECT * FROM second_chance_jobs"
     if where:
         sql += " WHERE " + " AND ".join(where)
-    sql += " ORDER BY datetime(date_posted) DESC, id DESC"
+    sql += " ORDER BY second_chance_score DESC, datetime(COALESCE(posted_at, date_posted)) DESC, id DESC"
     with get_db() as conn:
         return conn.execute(sql, params).fetchall()
 
@@ -2472,6 +2499,40 @@ def mark_job_applied(job_id):
             applied_job["background_notes"],
         )
         flash("Marked as applied and added to your application tracker.")
+    return redirect(request.referrer or url_for("second_chance_my_path"))
+
+
+@app.post("/jobs/<int:job_id>/status")
+@login_required
+def update_saved_job_status(job_id):
+    profile = current_user()
+    allowed = {"saved", "applied", "interview", "offer", "rejected", "hired"}
+    status = request.form.get("status", "saved").strip().lower()
+    if status not in allowed:
+        flash("That job status is not supported.")
+        return redirect(request.referrer or url_for("second_chance_my_path"))
+    with get_db() as conn:
+        job = conn.execute(
+            "SELECT id FROM second_chance_jobs WHERE id = ? AND status = 'approved'",
+            (job_id,),
+        ).fetchone()
+        if not job:
+            flash("That job could not be found.")
+        else:
+            conn.execute(
+                """
+                INSERT INTO saved_jobs (user_id, job_id, status, applied_at)
+                VALUES (?, ?, ?, CASE WHEN ? != 'saved' THEN CURRENT_TIMESTAMP ELSE '' END)
+                ON CONFLICT(user_id, job_id)
+                DO UPDATE SET status = excluded.status,
+                              applied_at = CASE
+                                  WHEN excluded.status != 'saved' AND saved_jobs.applied_at = '' THEN CURRENT_TIMESTAMP
+                                  ELSE saved_jobs.applied_at
+                              END
+                """,
+                (profile.id, job_id, status, status),
+            )
+            flash("Job status updated.")
     return redirect(request.referrer or url_for("second_chance_my_path"))
 
 
@@ -3492,7 +3553,7 @@ def admin_workforce():
         action = request.form.get("action", "").strip()
         record_id = request.form.get("id", type=int)
         status = request.form.get("status", "pending").strip()
-        if status not in {"pending", "approved", "rejected"}:
+        if status not in {"pending", "approved", "rejected", "hidden"}:
             status = "pending"
         with get_db() as conn:
             if action == "update_employer" and record_id:
@@ -3526,7 +3587,7 @@ def admin_workforce():
                     UPDATE second_chance_jobs
                     SET job_title = ?, company_name = ?, industry = ?, city = ?,
                         state = ?, location = ?, pay_range = ?, employment_type = ?,
-                        apply_link = ?, background_notes = ?, status = ?,
+                        apply_link = ?, background_notes = ?, second_chance_score = ?, status = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
                     """,
@@ -3541,6 +3602,7 @@ def admin_workforce():
                         request.form.get("employment_type", "").strip(),
                         request.form.get("apply_link", "").strip(),
                         request.form.get("background_notes", "").strip(),
+                        request.form.get("second_chance_score", type=int) or 0,
                         status,
                         record_id,
                     ),
@@ -3558,11 +3620,40 @@ def admin_workforce():
         jobs = conn.execute(
             "SELECT * FROM second_chance_jobs ORDER BY CASE status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END, created_at DESC"
         ).fetchall()
+        sync_runs = conn.execute(
+            "SELECT * FROM job_sync_runs ORDER BY datetime(started_at) DESC, id DESC LIMIT 12"
+        ).fetchall()
     return render_template(
         "second_chance/admin_workforce.html",
         employers=employers,
         jobs=jobs,
+        sync_runs=sync_runs,
     )
+
+
+@app.post("/admin/workforce/sync-jobs")
+@login_required
+def admin_sync_jobs():
+    user = admin_user_required()
+    if not user:
+        return "<h1>Admin access required</h1><p>Log in with the Brent & Co founder account.</p>", 403
+
+    query = request.form.get("query", "entry level").strip() or "entry level"
+    location = request.form.get("location", "United States").strip() or "United States"
+    try:
+        limit = max(1, min(int(request.form.get("limit", "25")), 100))
+    except ValueError:
+        limit = 25
+    provider_names = request.form.getlist("provider")
+    results = run_job_sync(DB_PATH, query=query, location=location, limit=limit, provider_names=provider_names)
+    for result in results:
+        if result["status"] == "failed":
+            flash(f"{result['provider']} failed: {result['error']}")
+        elif result["status"] == "skipped":
+            flash(f"{result['provider']} skipped: {result['warning']}")
+        else:
+            flash(f"{result['provider']} synced {result['upserted']} jobs.")
+    return redirect(url_for("admin_workforce"))
 
 
 @app.errorhandler(RequestEntityTooLarge)

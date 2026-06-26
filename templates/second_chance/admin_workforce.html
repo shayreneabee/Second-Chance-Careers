@@ -84,6 +84,39 @@
   <a class="sc-button" href="{{ url_for('admin_dashboard') }}">Back To Admin</a>
 </section>
 
+<section class="admin-workforce" aria-label="Job sync controls">
+  <h2>Automated Job Pipeline</h2>
+  <p>Refresh imported jobs from configured providers. Providers with missing API keys are skipped and logged without crashing the app.</p>
+  <form method="post" action="{{ url_for('admin_sync_jobs') }}">
+    <div class="review-grid">
+      <input name="query" value="entry level" placeholder="Search keyword">
+      <input name="location" value="United States" placeholder="Location">
+      <input name="limit" value="25" placeholder="Jobs per provider">
+    </div>
+    <div class="review-actions" style="margin-top: 0.8rem;">
+      <label><input type="checkbox" name="provider" value="careeronestop"> CareerOneStop</label>
+      <label><input type="checkbox" name="provider" value="usajobs"> USAJOBS</label>
+      <label><input type="checkbox" name="provider" value="adzuna"> Adzuna</label>
+      <label><input type="checkbox" name="provider" value="remoteok"> RemoteOK</label>
+      <button class="sc-button" type="submit">Refresh Jobs</button>
+    </div>
+  </form>
+  <h3>Last syncs</h3>
+  <div class="review-grid">
+    {% for run in sync_runs %}
+      <article class="review-card {{ run.status }}">
+        <strong>{{ run.provider }} · {{ run.status }}</strong>
+        <p>Fetched {{ run.fetched_count }} · Upserted {{ run.upserted_count }} · Inactive {{ run.deactivated_count }}</p>
+        {% if run.warning %}<p><strong>Warning:</strong> {{ run.warning }}</p>{% endif %}
+        {% if run.error %}<p><strong>Error:</strong> {{ run.error }}</p>{% endif %}
+        <p>{{ run.finished_at or run.started_at }}</p>
+      </article>
+    {% else %}
+      <p>No syncs have run yet.</p>
+    {% endfor %}
+  </div>
+</section>
+
 <section class="admin-workforce" aria-label="Employer review">
   <h2>Employers</h2>
   <div class="review-grid">
@@ -139,12 +172,16 @@
           <input name="pay_range" value="{{ job.pay_range }}" placeholder="Pay range">
           <input name="employment_type" value="{{ job.employment_type }}" placeholder="Employment type">
           <input name="apply_link" value="{{ job.apply_link }}" placeholder="Apply link">
+          <input name="second_chance_score" value="{{ job.second_chance_score or 0 }}" placeholder="Second Chance Score">
           <textarea name="background_notes" rows="3" placeholder="Background notes">{{ job.background_notes }}</textarea>
           <select name="status">
-            {% for status in ["pending", "approved", "rejected"] %}
+            {% for status in ["pending", "approved", "hidden", "rejected"] %}
               <option value="{{ status }}" {% if job.status == status %}selected{% endif %}>{{ status|title }}</option>
             {% endfor %}
           </select>
+          {% if job.source and job.source != "manual" %}
+            <p><strong>Imported:</strong> {{ job.source }}{% if job.external_id %} · {{ job.external_id }}{% endif %}</p>
+          {% endif %}
           <div class="review-actions">
             <button class="sc-button" type="submit">Save</button>
           </div>

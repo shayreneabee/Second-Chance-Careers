@@ -570,6 +570,13 @@
             <form method="post" action="{{ url_for('mark_job_applied', job_id=job.id) }}">
               <button class="sc-button" type="submit">Mark Applied</button>
             </form>
+            <form class="status-form" method="post" action="{{ url_for('update_saved_job_status', job_id=job.id) }}">
+              <select name="status" onchange="this.form.submit()" aria-label="Saved job status for {{ job.job_title }}">
+                {% for status in ["saved", "applied", "interview", "offer", "rejected", "hired"] %}
+                  <option value="{{ status }}" {% if job.saved_status == status %}selected{% endif %}>{{ status|title }}</option>
+                {% endfor %}
+              </select>
+            </form>
           </div>
         </li>
       {% endfor %}
