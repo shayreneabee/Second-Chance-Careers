@@ -610,7 +610,7 @@ SECOND_CHANCE_RESOURCE_GROUPS = [
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-key-change-me")
-app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_UPLOAD_MB", "100")) * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = int_env_value("MAX_UPLOAD_MB", 100) * 1024 * 1024
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "0") == "1"
@@ -3758,4 +3758,4 @@ seed_workforce_data()
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=int(os.getenv("PORT", "5001")))
+    app.run(debug=True, host="0.0.0.0", port=int_env_value("PORT", 5001))
