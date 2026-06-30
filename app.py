@@ -48,6 +48,14 @@ SECOND_CHANCE_URL = os.getenv(
 )
 SSO_SHARED_SECRET = os.getenv("SSO_SHARED_SECRET", "dev-sso-change-me")
 BRENT_SSO_URL = os.getenv("BRENT_SSO_URL", "https://www.brentandco.org/sso/start")
+SSO_TOKEN_TTL_SECONDS = int(os.getenv("SSO_TOKEN_TTL_SECONDS", "900"))
+SSO_CLOCK_SKEW_SECONDS = int(os.getenv("SSO_CLOCK_SKEW_SECONDS", "120"))
+SSO_ACCEPTED_ISSUERS = {
+    issuer.strip()
+    for issuer in os.getenv("SSO_ACCEPTED_ISSUERS", "brent-co-identity,brent-co-sso").split(",")
+    if issuer.strip()
+}
+SSO_AUDIENCE = os.getenv("SSO_AUDIENCE", "second-chance").strip()
 DEBUG_SSO = os.getenv("DEBUG_SSO", "").strip().lower() in {"1", "true", "yes", "on"}
 PASSWORD_RESET_SECONDS = int(os.getenv("PASSWORD_RESET_SECONDS", "3600"))
 AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
@@ -813,6 +821,7 @@ def sso_b64decode(value):
 
 
 def verify_sso_token(token):
+    failure_reason = "unknown"
     try:
         body, signature = token.split(".", 1)
         expected = hmac.new(
@@ -821,11 +830,41 @@ def verify_sso_token(token):
             hashlib.sha256,
         ).digest()
         if not hmac.compare_digest(sso_b64decode(signature), expected):
+            failure_reason = "signature_mismatch"
+            app.logger.info("Second Chance SSO rejected token: %s", failure_reason)
             return None
         payload = json.loads(sso_b64decode(body).decode("utf-8"))
     except (ValueError, json.JSONDecodeError, TypeError):
+        failure_reason = "malformed_token"
+        app.logger.info("Second Chance SSO rejected token: %s", failure_reason)
         return None
-    if payload.get("aud") != "second-chance" or int(payload.get("exp", 0)) < int(time.time()):
+    now = int(time.time())
+    issuer = payload.get("iss", "")
+    issued_at = int(payload.get("iat", 0) or 0)
+    expires_at = int(payload.get("exp", 0) or 0)
+    if payload.get("aud") != SSO_AUDIENCE:
+        failure_reason = "invalid_audience"
+        app.logger.info("Second Chance SSO rejected token: %s", failure_reason)
+        return None
+    if SSO_ACCEPTED_ISSUERS and issuer not in SSO_ACCEPTED_ISSUERS:
+        failure_reason = "invalid_issuer"
+        app.logger.info("Second Chance SSO rejected token: %s", failure_reason)
+        return None
+    if issued_at and issued_at > now + SSO_CLOCK_SKEW_SECONDS:
+        failure_reason = "issued_in_future"
+        app.logger.info("Second Chance SSO rejected token: %s", failure_reason)
+        return None
+    if expires_at and expires_at < now - SSO_CLOCK_SKEW_SECONDS:
+        failure_reason = "token_expired"
+        app.logger.info("Second Chance SSO rejected token: %s", failure_reason)
+        return None
+    if issued_at and now - issued_at > SSO_TOKEN_TTL_SECONDS + SSO_CLOCK_SKEW_SECONDS:
+        failure_reason = "token_too_old"
+        app.logger.info("Second Chance SSO rejected token: %s", failure_reason)
+        return None
+    if not expires_at and not issued_at:
+        failure_reason = "missing_time_claims"
+        app.logger.info("Second Chance SSO rejected token: %s", failure_reason)
         return None
     return payload
 
