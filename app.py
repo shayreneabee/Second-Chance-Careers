@@ -32,16 +32,8 @@ from werkzeug.utils import secure_filename
 from job_pipeline.sync import ensure_job_pipeline_schema, sync_jobs as run_job_sync
 
 
-BASE_DIR = Path(__file__).resolve().parent
-INSTANCE_DIR = Path(os.getenv("INSTANCE_DIR", BASE_DIR / "instance"))
-UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", BASE_DIR / "static" / "uploads"))
-PHOTO_DIR = UPLOAD_DIR / "photos"
-VIDEO_DIR = UPLOAD_DIR / "videos"
-DB_PATH = Path(os.getenv("DATABASE_PATH", INSTANCE_DIR / "find_the_beat_v2.db"))
-
-
 def clean_env_value(name, default=""):
-    return os.getenv(name, default).strip().strip("\"'")
+    return os.getenv(name, str(default)).strip().strip("\"'")
 
 
 def int_env_value(name, default):
@@ -50,6 +42,38 @@ def int_env_value(name, default):
         return int(raw_value)
     except (TypeError, ValueError):
         return int(default)
+
+
+BASE_DIR = Path(__file__).resolve().parent
+RUNTIME_WARNINGS = []
+INSTANCE_DIR = Path(clean_env_value("INSTANCE_DIR", BASE_DIR / "instance"))
+UPLOAD_DIR = Path(clean_env_value("UPLOAD_DIR", BASE_DIR / "static" / "uploads"))
+PHOTO_DIR = UPLOAD_DIR / "photos"
+VIDEO_DIR = UPLOAD_DIR / "videos"
+DB_PATH = Path(clean_env_value("DATABASE_PATH", INSTANCE_DIR / "second_chance.db"))
+
+
+def ensure_writable_dir(path, fallback, label):
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    except PermissionError as exc:
+        fallback.mkdir(parents=True, exist_ok=True)
+        RUNTIME_WARNINGS.append(
+            f"{label} path {path} is not writable ({exc}); using fallback {fallback}. "
+            "Attach the Render persistent disk at /var/data for production persistence."
+        )
+        return fallback
+
+
+INSTANCE_DIR = ensure_writable_dir(INSTANCE_DIR, BASE_DIR / "instance", "Instance")
+if DB_PATH.parent != INSTANCE_DIR:
+    db_parent = ensure_writable_dir(DB_PATH.parent, INSTANCE_DIR, "Database")
+    if db_parent != DB_PATH.parent:
+        DB_PATH = db_parent / DB_PATH.name
+UPLOAD_DIR = ensure_writable_dir(UPLOAD_DIR, INSTANCE_DIR / "uploads", "Upload")
+PHOTO_DIR = UPLOAD_DIR / "photos"
+VIDEO_DIR = UPLOAD_DIR / "videos"
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 ALLOWED_VIDEO_EXTENSIONS = {"mp4", "mov", "m4v", "webm"}
@@ -618,6 +642,9 @@ app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "0") ==
 if os.getenv("TRUST_PROXY", "1") == "1":
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
+for warning in RUNTIME_WARNINGS:
+    app.logger.warning(warning)
+
 
 def log_sso_debug(event, app_name="second-chance", callback_url=""):
     if not DEBUG_SSO:
@@ -632,7 +659,7 @@ def log_sso_debug(event, app_name="second-chance", callback_url=""):
     )
 
 
-for folder in (INSTANCE_DIR, UPLOAD_DIR, PHOTO_DIR, VIDEO_DIR):
+for folder in (PHOTO_DIR, VIDEO_DIR):
     folder.mkdir(parents=True, exist_ok=True)
 
 
