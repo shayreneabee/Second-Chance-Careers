@@ -16,6 +16,7 @@ from urllib.parse import urlencode
 from flask import (
     Flask,
     flash,
+    jsonify,
     redirect,
     render_template,
     request,
@@ -818,6 +819,28 @@ def ensure_user_identity(conn, user_id):
 def sso_b64decode(value):
     padding = "=" * (-len(value) % 4)
     return base64.urlsafe_b64decode((value + padding).encode("utf-8"))
+
+
+@app.route("/sso/debug")
+def sso_debug():
+    if not DEBUG_SSO:
+        return jsonify({"debug": False, "message": "Set DEBUG_SSO=true to inspect SSO config."}), 404
+    return jsonify(
+        {
+            "app": "second-chance",
+            "debug": True,
+            "brent_sso_url": BRENT_SSO_URL,
+            "sso_shared_secret_present": bool(SSO_SHARED_SECRET),
+            "sso_shared_secret_fingerprint": hashlib.sha256(SSO_SHARED_SECRET.encode("utf-8")).hexdigest()[:12]
+            if SSO_SHARED_SECRET
+            else "",
+            "sso_token_ttl_seconds": SSO_TOKEN_TTL_SECONDS,
+            "sso_clock_skew_seconds": SSO_CLOCK_SKEW_SECONDS,
+            "sso_accepted_issuers": sorted(SSO_ACCEPTED_ISSUERS),
+            "sso_audience": SSO_AUDIENCE,
+            "consume_url": f"{request.url_root.rstrip('/')}/sso/consume",
+        }
+    )
 
 
 def verify_sso_token(token):
@@ -2752,7 +2775,7 @@ def sso_consume():
     log_sso_debug("consume", callback_url=f"{request.url_root.rstrip('/')}/sso/consume")
     payload = verify_sso_token(request.args.get("token", ""))
     if not payload:
-        flash("That Brent & Co sign-in link expired. Please try again.")
+        flash("That Brent & Co sign-in link expired or could not be verified. Please try again.")
         return redirect(url_for("second_chance_login"))
     user = upsert_sso_user(payload)
     session.clear()
