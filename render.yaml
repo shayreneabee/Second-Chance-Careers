@@ -29,5 +29,7 @@ services:
         value: "120"
       - key: SSO_ACCEPTED_ISSUERS
         value: brent-co-identity,brent-co-sso
+      - key: SSO_AUDIENCE
+        value: second-chance
       - key: DEBUG_SSO
         value: "0"
