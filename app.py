@@ -46,11 +46,15 @@ def int_env_value(name, default):
 
 BASE_DIR = Path(__file__).resolve().parent
 RUNTIME_WARNINGS = []
-INSTANCE_DIR = Path(clean_env_value("INSTANCE_DIR", BASE_DIR / "instance"))
-UPLOAD_DIR = Path(clean_env_value("UPLOAD_DIR", BASE_DIR / "static" / "uploads"))
+STORAGE_FALLBACKS = []
+REQUESTED_INSTANCE_DIR = Path(clean_env_value("INSTANCE_DIR", BASE_DIR / "instance"))
+REQUESTED_UPLOAD_DIR = Path(clean_env_value("UPLOAD_DIR", BASE_DIR / "static" / "uploads"))
+REQUESTED_DB_PATH = Path(clean_env_value("DATABASE_PATH", REQUESTED_INSTANCE_DIR / "second_chance.db"))
+INSTANCE_DIR = REQUESTED_INSTANCE_DIR
+UPLOAD_DIR = REQUESTED_UPLOAD_DIR
 PHOTO_DIR = UPLOAD_DIR / "photos"
 VIDEO_DIR = UPLOAD_DIR / "videos"
-DB_PATH = Path(clean_env_value("DATABASE_PATH", INSTANCE_DIR / "second_chance.db"))
+DB_PATH = REQUESTED_DB_PATH
 
 
 def ensure_writable_dir(path, fallback, label):
@@ -63,6 +67,7 @@ def ensure_writable_dir(path, fallback, label):
             f"{label} path {path} is not writable ({exc}); using fallback {fallback}. "
             "Attach the Render persistent disk at /var/data for production persistence."
         )
+        STORAGE_FALLBACKS.append({"label": label, "requested": str(path), "fallback": str(fallback)})
         return fallback
 
 
@@ -74,6 +79,27 @@ if DB_PATH.parent != INSTANCE_DIR:
 UPLOAD_DIR = ensure_writable_dir(UPLOAD_DIR, INSTANCE_DIR / "uploads", "Upload")
 PHOTO_DIR = UPLOAD_DIR / "photos"
 VIDEO_DIR = UPLOAD_DIR / "videos"
+
+
+def storage_status():
+    requested_database = str(REQUESTED_DB_PATH)
+    effective_database = str(DB_PATH)
+    requested_uploads = str(REQUESTED_UPLOAD_DIR)
+    effective_uploads = str(UPLOAD_DIR)
+    using_fallback = bool(STORAGE_FALLBACKS) or requested_database != effective_database or requested_uploads != effective_uploads
+    render_disk_expected = requested_database.startswith("/var/data") or requested_uploads.startswith("/var/data")
+    persistent_ready = render_disk_expected and not using_fallback and DB_PATH.parent.exists() and UPLOAD_DIR.exists()
+    return {
+        "persistent_ready": persistent_ready,
+        "using_fallback": using_fallback,
+        "render_disk_expected": render_disk_expected,
+        "requested_database": requested_database,
+        "effective_database": effective_database,
+        "requested_uploads": requested_uploads,
+        "effective_uploads": effective_uploads,
+        "fallbacks": STORAGE_FALLBACKS,
+        "warnings": RUNTIME_WARNINGS,
+    }
 
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 ALLOWED_VIDEO_EXTENSIONS = {"mp4", "mov", "m4v", "webm"}
@@ -878,6 +904,7 @@ def sso_debug():
             "sso_accepted_issuers": sorted(SSO_ACCEPTED_ISSUERS),
             "sso_audience": SSO_AUDIENCE,
             "consume_url": f"{request.url_root.rstrip('/')}/sso/consume",
+            "storage": storage_status(),
         }
     )
 
@@ -3629,12 +3656,31 @@ def admin_dashboard():
         "</tr>"
         for row in latest_users
     )
+    storage = storage_status()
+    storage_tone = "#176b4f" if storage["persistent_ready"] else "#9f2f20"
+    storage_title = "Persistent storage is active" if storage["persistent_ready"] else "Storage needs attention"
+    storage_copy = (
+        "Second Chance is using the Render disk at /var/data for database and uploads."
+        if storage["persistent_ready"]
+        else "Second Chance is running on an emergency fallback path. Attach the Render persistent disk at /var/data so users, profiles, saved jobs, and uploads survive deploys."
+    )
+    storage_rows = "".join(
+        f"<tr><th>{escape(label)}</th><td>{escape(value)}</td></tr>"
+        for label, value in [
+            ("Requested database", storage["requested_database"]),
+            ("Effective database", storage["effective_database"]),
+            ("Requested uploads", storage["requested_uploads"]),
+            ("Effective uploads", storage["effective_uploads"]),
+            ("Using fallback", "Yes" if storage["using_fallback"] else "No"),
+        ]
+    )
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Brent & Co Admin | Second Chance Careers</title><link rel="stylesheet" href="/static/css/styles.css"></head>
 <body class="page-shell"><main class="admin-dashboard">
 <p class="eyebrow">Brent & Co founder control center</p><h1>Founder Dashboard</h1>
 <p>Filter: {escape(platform_filter)} · Last updated: {escape(updated_at)} · Refresh: reload page</p><nav class="profile-actions">{''.join(filters)}<a class="sc-button" href="/admin/workforce">Workforce review</a></nav>
+<section class="admin-panel" style="border-left:6px solid {storage_tone};"><h2>{escape(storage_title)}</h2><p>{escape(storage_copy)}</p><table><tbody>{storage_rows}</tbody></table></section>
 <section class="stats-grid"><article><strong>{total_users}</strong><span>Total users</span></article><article><strong>{new_today}</strong><span>New users today</span></article><article><strong>{active_users}</strong><span>Active users</span></article><article><strong>{avg_completion}%</strong><span>Avg profile completion</span></article><article><strong>{total_messages}</strong><span>Messages sent</span></article><article><strong>{total_showcases}</strong><span>Showcases uploaded</span></article><article><strong>{total_jobs}</strong><span>Job posts</span></article><article><strong>{pending_jobs}</strong><span>Pending jobs</span></article><article><strong>{total_employers}</strong><span>Employers</span></article><article><strong>{pending_employers}</strong><span>Pending employers</span></article><article><strong>{total_applications}</strong><span>Applications</span></article></section>
 <section class="admin-panel"><h2>Analytics periods</h2><p>Dashboard analytics use the local onboarding_events table. Page visits count Second Chance landing-page views; unique visitors count distinct logged-in users or anonymous sessions. These numbers update when the page reloads.</p><table><thead><tr><th>Period</th><th>Page visits</th><th>Unique visitors</th><th>Signup clicks</th><th>Accounts created</th></tr></thead><tbody>{period_rows}</tbody></table></section>
 <section class="admin-panel"><h2>Onboarding funnel</h2><p>See where users move forward or drop off from first visit to first action.</p><table><thead><tr><th>Step</th><th>Visual</th><th>Users</th><th>Conversion</th><th>Drop-off</th></tr></thead><tbody>{funnel_rows}</tbody></table></section>
