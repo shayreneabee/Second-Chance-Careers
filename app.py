@@ -39,6 +39,18 @@ PHOTO_DIR = UPLOAD_DIR / "photos"
 VIDEO_DIR = UPLOAD_DIR / "videos"
 DB_PATH = Path(os.getenv("DATABASE_PATH", INSTANCE_DIR / "find_the_beat_v2.db"))
 
+
+def clean_env_value(name, default=""):
+    return os.getenv(name, default).strip().strip("\"'")
+
+
+def int_env_value(name, default):
+    raw_value = clean_env_value(name, str(default))
+    try:
+        return int(raw_value)
+    except (TypeError, ValueError):
+        return int(default)
+
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 ALLOWED_VIDEO_EXTENSIONS = {"mp4", "mov", "m4v", "webm"}
 BRENT_CO_URL = os.getenv("BRENT_CO_URL", "https://brentandco.org/")
@@ -47,18 +59,18 @@ SECOND_CHANCE_URL = os.getenv(
     "SECOND_CHANCE_URL",
     "https://secondchancecareers.org/",
 )
-SSO_SHARED_SECRET = os.getenv("SSO_SHARED_SECRET", "dev-sso-change-me").strip().strip("\"'")
-BRENT_SSO_URL = os.getenv("BRENT_SSO_URL", "https://www.brentandco.org/sso/start")
-SSO_TOKEN_TTL_SECONDS = int(os.getenv("SSO_TOKEN_TTL_SECONDS", "900"))
-SSO_CLOCK_SKEW_SECONDS = int(os.getenv("SSO_CLOCK_SKEW_SECONDS", "120"))
+SSO_SHARED_SECRET = clean_env_value("SSO_SHARED_SECRET", "dev-sso-change-me")
+BRENT_SSO_URL = clean_env_value("BRENT_SSO_URL", "https://www.brentandco.org/sso/start")
+SSO_TOKEN_TTL_SECONDS = int_env_value("SSO_TOKEN_TTL_SECONDS", 900)
+SSO_CLOCK_SKEW_SECONDS = int_env_value("SSO_CLOCK_SKEW_SECONDS", 120)
 SSO_ACCEPTED_ISSUERS = {
     issuer.strip()
-    for issuer in os.getenv("SSO_ACCEPTED_ISSUERS", "brent-co-identity,brent-co-sso").split(",")
+    for issuer in clean_env_value("SSO_ACCEPTED_ISSUERS", "brent-co-identity,brent-co-sso").split(",")
     if issuer.strip()
 }
-SSO_AUDIENCE = os.getenv("SSO_AUDIENCE", "second-chance").strip()
-DEBUG_SSO = os.getenv("DEBUG_SSO", "").strip().lower() in {"1", "true", "yes", "on"}
-PASSWORD_RESET_SECONDS = int(os.getenv("PASSWORD_RESET_SECONDS", "3600"))
+SSO_AUDIENCE = clean_env_value("SSO_AUDIENCE", "second-chance")
+DEBUG_SSO = clean_env_value("DEBUG_SSO").lower() in {"1", "true", "yes", "on"}
+PASSWORD_RESET_SECONDS = int_env_value("PASSWORD_RESET_SECONDS", 3600)
 AUTH_PROVIDER = os.getenv("BRENT_AUTH_PROVIDER", "local")
 OWNER_AUTH_PROVIDER = os.getenv("BRENT_OWNER_AUTH_PROVIDER", "brent-core")
 OWNER_INITIAL_PASSWORD = os.getenv("BRENT_OWNER_INITIAL_PASSWORD", "")
