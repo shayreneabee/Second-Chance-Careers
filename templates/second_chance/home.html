@@ -315,7 +315,7 @@
   {% for category in categories %}
     <a class="category-card" href="{{ url_for('second_chance_category_page', slug=category.slug) }}">
       <strong>{{ category.title }}</strong>
-      <img src="{{ url_for('static', filename='second_chance/' ~ category.image) }}" alt="">
+      <img src="{{ url_for('static', filename='second_chance/' ~ category.image) }}" alt="{{ category.title }} career path">
     </a>
   {% endfor %}
 </section>

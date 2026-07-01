@@ -39,13 +39,46 @@
 
     a { color: inherit; text-decoration: none; }
     img { display: block; max-width: 100%; }
-    input, button { font: inherit; }
+    input, button, select, textarea { font: inherit; }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .skip-link {
+      position: fixed;
+      top: 0.85rem;
+      left: 0.85rem;
+      z-index: 1000;
+      transform: translateY(-150%);
+      border-radius: 999px;
+      background: #071514;
+      color: #ffffff;
+      padding: 0.75rem 1rem;
+      box-shadow: 0 14px 34px rgba(7, 21, 20, 0.28);
+    }
+
+    .skip-link:focus {
+      transform: translateY(0);
+    }
 
     a:focus-visible,
     button:focus-visible,
-    input:focus-visible {
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    [tabindex]:focus-visible {
       outline: 3px solid rgba(242, 255, 168, 0.9);
       outline-offset: 3px;
+      box-shadow: 0 0 0 7px rgba(7, 21, 20, 0.16);
     }
 
     .sc-page {
@@ -607,6 +640,7 @@
   {% block head %}{% endblock %}
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
   <div class="sc-page">
     <header class="sc-top">
       <a class="sc-logo" href="{{ url_for('second_chance_home') }}" aria-label="Second Chance Careers home"></a>
@@ -626,10 +660,10 @@
       </nav>
     </header>
 
-    <main class="sc-main">
+    <main id="main-content" class="sc-main" tabindex="-1">
       {% with messages = get_flashed_messages() %}
         {% if messages %}
-          <div class="sc-flashes">
+          <div class="sc-flashes" role="status" aria-live="polite">
             {% for message in messages %}
               <div class="sc-flash">{{ message }}</div>
             {% endfor %}

@@ -56,7 +56,7 @@
 
 {% block content %}
 <section class="category-hero">
-  <img src="{{ url_for('static', filename='second_chance/' ~ category.hero) }}" alt="">
+  <img src="{{ url_for('static', filename='second_chance/' ~ category.hero) }}" alt="{{ category.title }} career resources">
 </section>
 
 <div class="sc-band">{{ category.title }}</div>

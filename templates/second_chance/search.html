@@ -162,7 +162,8 @@
   <h2>Find a job path that fits where you are now.</h2>
   <p>Search by role, industry, skill, training path, license need, or remote work. This is designed to guide people toward the next doable step.</p>
   <form class="finder-form" method="GET" action="{{ url_for('second_chance_search') }}">
-    <input name="q" value="{{ q }}" placeholder="Search jobs, training, documents, or skills">
+    <label class="sr-only" for="second-chance-search">Search jobs, training, documents, or skills</label>
+    <input id="second-chance-search" name="q" value="{{ q }}" placeholder="Search jobs, training, documents, or skills">
     <button class="sc-button" type="submit"><span class="plus">+</span>Search</button>
   </form>
 </section>

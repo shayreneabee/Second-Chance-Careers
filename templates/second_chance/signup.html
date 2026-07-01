@@ -125,11 +125,13 @@
   <form class="signup-form" method="POST" enctype="multipart/form-data">
     <label class="sc-field">
       <span>✉</span>
+      <span class="sr-only">Email address</span>
       <input name="email" type="email" placeholder="yourname@example.com" required>
     </label>
 
     <label class="sc-field">
       <span>▣</span>
+      <span class="sr-only">Password</span>
       <input name="password" type="password" placeholder="Password" required>
     </label>
 
@@ -137,16 +139,19 @@
       <summary>Optional: start my career profile</summary>
       <label class="sc-field">
         <span>♟</span>
+        <span class="sr-only">Full name</span>
         <input name="display_name" placeholder="Full Name">
       </label>
 
       <label class="sc-field">
         <span>⌂</span>
+        <span class="sr-only">City and state</span>
         <input name="city" placeholder="City, State">
       </label>
 
       <label class="sc-field">
         <span>⇪</span>
+        <span class="sr-only">Profile picture</span>
         <input name="profile_pic" type="file" accept="image/*">
       </label>
 
@@ -166,9 +171,10 @@
     <button class="sc-button signup-submit" type="submit">Sign up</button>
     <div class="oauth-prep" aria-label="Brent and Co social sign in">
       <a class="sc-button" href="{{ url_for('sso_login') }}">Continue with Google</a>
-      <button type="button" disabled>Continue with Apple</button>
-      <button type="button" disabled>Continue with Email</button>
-      <button type="button" disabled>Facebook later</button>
+      <button type="button" disabled aria-describedby="second-chance-auth-note">Continue with Apple</button>
+      <button type="button" disabled aria-describedby="second-chance-auth-note">Continue with Email</button>
+      <button type="button" disabled aria-describedby="second-chance-auth-note">Facebook later</button>
+      <p id="second-chance-auth-note" class="sr-only">These sign-in options are planned but not available yet. Use Google or the signup form to continue.</p>
     </div>
     <p class="terms">Already have an account? <a href="{{ url_for('second_chance_login') }}">Sign in</a></p>
   </form>

@@ -137,11 +137,16 @@
   <h2>Search jobs</h2>
   <form method="get">
     <div class="filter-grid">
-      <input type="search" name="q" value="{{ filters.q }}" placeholder="Keyword, company, or role">
-      <input name="industry" value="{{ filters.industry }}" placeholder="Industry">
-      <input name="state" value="{{ filters.state }}" placeholder="State">
-      <input name="city" value="{{ filters.city }}" placeholder="City">
-      <select name="employment_type">
+      <label class="sr-only" for="jobs-keyword">Keyword, company, or role</label>
+      <input id="jobs-keyword" type="search" name="q" value="{{ filters.q }}" placeholder="Keyword, company, or role">
+      <label class="sr-only" for="jobs-industry">Industry</label>
+      <input id="jobs-industry" name="industry" value="{{ filters.industry }}" placeholder="Industry">
+      <label class="sr-only" for="jobs-state">State</label>
+      <input id="jobs-state" name="state" value="{{ filters.state }}" placeholder="State">
+      <label class="sr-only" for="jobs-city">City</label>
+      <input id="jobs-city" name="city" value="{{ filters.city }}" placeholder="City">
+      <label class="sr-only" for="jobs-employment-type">Employment type</label>
+      <select id="jobs-employment-type" name="employment_type">
         <option value="">Employment type</option>
         {% for option in ["Full-time", "Part-time", "Contract", "Temporary"] %}
           <option value="{{ option }}" {% if filters.employment_type == option %}selected{% endif %}>{{ option }}</option>
@@ -191,14 +196,14 @@
         </div>
         <div class="job-actions">
           {% if job.apply_link %}
-            <a class="sc-button" href="{{ job.apply_link }}" target="_blank" rel="noopener">Apply</a>
+            <a class="sc-button" href="{{ job.apply_link }}" target="_blank" rel="noopener" aria-label="Apply for {{ job.job_title }} at {{ job.company_name }}">Apply</a>
           {% endif %}
           {% if profile %}
             <form method="post" action="{{ url_for('save_job', job_id=job.id) }}">
-              <button class="sc-button" type="submit">{% if job.id in saved_job_ids %}Saved{% else %}Save Job{% endif %}</button>
+              <button class="sc-button" type="submit" aria-label="{% if job.id in saved_job_ids %}Saved {{ job.job_title }} at {{ job.company_name }}{% else %}Save {{ job.job_title }} at {{ job.company_name }}{% endif %}">{% if job.id in saved_job_ids %}Saved{% else %}Save Job{% endif %}</button>
             </form>
             <form method="post" action="{{ url_for('mark_job_applied', job_id=job.id) }}">
-              <button class="sc-button" type="submit">Mark Applied</button>
+              <button class="sc-button" type="submit" aria-label="Mark {{ job.job_title }} at {{ job.company_name }} as applied">Mark Applied</button>
             </form>
           {% else %}
             <a class="sc-button" href="{{ url_for('second_chance_login') }}">Sign In To Save</a>
