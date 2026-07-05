@@ -7,6 +7,7 @@ import re
 import secrets
 import sqlite3
 import time
+from datetime import date, timedelta
 from functools import wraps
 from html import escape
 from pathlib import Path
@@ -312,7 +313,7 @@ SECOND_CHANCE_SKILLS = [
 
 SECOND_CHANCE_FEATURES = [
     {
-        "title": "My Path Dashboard",
+        "title": "My Journey Dashboard",
         "body": "A simple step-by-step plan so each person can see what is done, what is next, and where they are gaining momentum.",
     },
     {
@@ -709,6 +710,70 @@ ONBOARDING_STEPS = [
     ("profile_started", "Profile Started"),
     ("profile_completed", "Profile Completed"),
     ("first_action_taken", "First Action Taken"),
+]
+
+SECOND_CHANCE_WEEKLY_CHALLENGES = [
+    {
+        "key": "apply-5-jobs",
+        "title": "Apply to 5 jobs",
+        "detail": "Choose five realistic roles and submit or save each one with a follow-up note.",
+        "points": 12,
+    },
+    {
+        "key": "update-resume",
+        "title": "Update resume",
+        "detail": "Add one recent skill, job, class, volunteer role, or project to your resume packet.",
+        "points": 8,
+    },
+    {
+        "key": "complete-profile",
+        "title": "Complete profile",
+        "detail": "Make sure your city, goal, bio, work interests, and contact basics are current.",
+        "points": 8,
+    },
+    {
+        "key": "contact-employer",
+        "title": "Contact one employer",
+        "detail": "Send one follow-up message, make one call, or ask about one open opportunity.",
+        "points": 10,
+    },
+    {
+        "key": "practice-interview",
+        "title": "Practice interview questions",
+        "detail": "Write or say three steady answers about your strengths, availability, and goals.",
+        "points": 8,
+    },
+]
+
+SECOND_CHANCE_LEVELS = [
+    (35, "Mentor"),
+    (20, "Career Builder"),
+    (10, "Interview Ready"),
+    (5, "Ready to Work"),
+    (1, "Starting Fresh"),
+]
+
+SECOND_CHANCE_CIRCLES = [
+    {
+        "title": "Returning Citizens",
+        "detail": "A steady circle for people rebuilding after incarceration, probation, or record barriers.",
+    },
+    {
+        "title": "Veterans",
+        "detail": "Career support for veterans translating service, discipline, and training into civilian work.",
+    },
+    {
+        "title": "Career Changers",
+        "detail": "For people leaving one chapter and learning how to tell a stronger story for the next one.",
+    },
+    {
+        "title": "Trade School Students",
+        "detail": "Accountability for apprenticeships, certifications, tools, applications, and class milestones.",
+    },
+    {
+        "title": "Single Parents",
+        "detail": "Support around schedules, childcare, transportation, flexible work, and real-life planning.",
+    },
 ]
 
 
@@ -1230,6 +1295,70 @@ def init_db():
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS second_chance_challenge_progress (
+                user_id INTEGER NOT NULL,
+                challenge_key TEXT NOT NULL,
+                week_key TEXT NOT NULL,
+                completed INTEGER DEFAULT 0,
+                completed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(user_id, challenge_key, week_key),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS second_chance_activity_days (
+                user_id INTEGER NOT NULL,
+                activity_date TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(user_id, activity_date),
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS second_chance_community_posts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                body TEXT NOT NULL,
+                milestone TEXT DEFAULT 'Update',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS second_chance_post_reactions (
+                post_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                reaction TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY(post_id, user_id, reaction),
+                FOREIGN KEY(post_id) REFERENCES second_chance_community_posts(id) ON DELETE CASCADE,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS second_chance_success_stories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                achievement TEXT NOT NULL,
+                story TEXT NOT NULL,
+                is_published INTEGER DEFAULT 1,
+                created_by INTEGER,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
             )
             """
         )
@@ -2023,6 +2152,7 @@ def create_second_chance_application(user_id, company, role, resource_url, notes
                 notes.strip(),
             ),
         )
+        record_second_chance_activity(user_id, conn)
         track_onboarding_event("first_action_taken", user_id, {"action": "application_saved"}, conn)
     return True
 
@@ -2040,7 +2170,327 @@ def update_second_chance_application_status(user_id, application_id, status):
             """,
             (status, application_id, user_id),
         )
+        if result.rowcount > 0:
+            record_second_chance_activity(user_id, conn)
     return result.rowcount > 0
+
+
+def second_chance_week_key():
+    return time.strftime("%Y-W%W")
+
+
+def record_second_chance_activity(user_id, conn=None):
+    if not user_id:
+        return
+
+    def insert_activity(active_conn):
+        active_conn.execute(
+            """
+            INSERT OR IGNORE INTO second_chance_activity_days (user_id, activity_date)
+            VALUES (?, date('now'))
+            """,
+            (user_id,),
+        )
+
+    if conn is not None:
+        insert_activity(conn)
+    else:
+        with get_db() as activity_conn:
+            insert_activity(activity_conn)
+
+
+def get_second_chance_streak(user_id):
+    if not user_id:
+        return {"days": 0, "message": "Come back today and take one small step toward your future."}
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT activity_date
+            FROM second_chance_activity_days
+            WHERE user_id = ?
+            ORDER BY activity_date DESC
+            LIMIT 30
+            """,
+            (user_id,),
+        ).fetchall()
+    dates = {row["activity_date"] for row in rows}
+    streak = 0
+    today = date.today()
+    for offset in range(30):
+        if (today - timedelta(days=offset)).isoformat() in dates:
+            streak += 1
+        elif offset == 0:
+            continue
+        else:
+            break
+    return {
+        "days": streak,
+        "message": (
+            f"You've worked on your future {streak} day{'s' if streak != 1 else ''} in a row."
+            if streak
+            else "Start today's streak with one small step. Save a job, update a task, or post a win."
+        ),
+    }
+
+
+def get_second_chance_weekly_challenges(user_id):
+    week_key = second_chance_week_key()
+    if not user_id:
+        completed = set()
+    else:
+        with get_db() as conn:
+            rows = conn.execute(
+                """
+                SELECT challenge_key
+                FROM second_chance_challenge_progress
+                WHERE user_id = ? AND week_key = ? AND completed = 1
+                """,
+                (user_id, week_key),
+            ).fetchall()
+        completed = {row["challenge_key"] for row in rows}
+    return [
+        {
+            **challenge,
+            "completed": challenge["key"] in completed,
+            "week_key": week_key,
+        }
+        for challenge in SECOND_CHANCE_WEEKLY_CHALLENGES
+    ]
+
+
+def complete_second_chance_challenge(user_id, challenge_key):
+    valid = {challenge["key"] for challenge in SECOND_CHANCE_WEEKLY_CHALLENGES}
+    if challenge_key not in valid:
+        return False
+    with get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO second_chance_challenge_progress (
+                user_id, challenge_key, week_key, completed, completed_at
+            )
+            VALUES (?, ?, ?, 1, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id, challenge_key, week_key)
+            DO UPDATE SET completed = 1, completed_at = CURRENT_TIMESTAMP
+            """,
+            (user_id, challenge_key, second_chance_week_key()),
+        )
+        record_second_chance_activity(user_id, conn)
+        track_onboarding_event("first_action_taken", user_id, {"action": "weekly_challenge_completed"}, conn)
+    return True
+
+
+def get_second_chance_community_posts(limit=8):
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT p.*, u.display_name, u.username,
+                   SUM(CASE WHEN r.reaction = 'Proud of you' THEN 1 ELSE 0 END) AS proud_count,
+                   SUM(CASE WHEN r.reaction = 'Keep going' THEN 1 ELSE 0 END) AS keep_going_count,
+                   SUM(CASE WHEN r.reaction = 'Congratulations' THEN 1 ELSE 0 END) AS congrats_count
+            FROM second_chance_community_posts p
+            JOIN users u ON u.id = p.user_id
+            LEFT JOIN second_chance_post_reactions r ON r.post_id = p.id
+            GROUP BY p.id
+            ORDER BY datetime(p.created_at) DESC, p.id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return rows
+
+
+def create_second_chance_community_post(user_id, body, milestone):
+    body = (body or "").strip()
+    milestone = (milestone or "Update").strip()[:48] or "Update"
+    if len(body) < 3:
+        return False
+    with get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO second_chance_community_posts (user_id, body, milestone)
+            VALUES (?, ?, ?)
+            """,
+            (user_id, body[:500], milestone),
+        )
+        record_second_chance_activity(user_id, conn)
+    return True
+
+
+def react_to_second_chance_post(user_id, post_id, reaction):
+    allowed = {"Proud of you", "Keep going", "Congratulations"}
+    if reaction not in allowed:
+        return False
+    with get_db() as conn:
+        exists = conn.execute(
+            "SELECT id FROM second_chance_community_posts WHERE id = ?",
+            (post_id,),
+        ).fetchone()
+        if not exists:
+            return False
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO second_chance_post_reactions (post_id, user_id, reaction)
+            VALUES (?, ?, ?)
+            """,
+            (post_id, user_id, reaction),
+        )
+        record_second_chance_activity(user_id, conn)
+    return True
+
+
+def get_second_chance_success_stories():
+    with get_db() as conn:
+        rows = conn.execute(
+            """
+            SELECT *
+            FROM second_chance_success_stories
+            WHERE is_published = 1
+            ORDER BY datetime(created_at) DESC, id DESC
+            LIMIT 6
+            """
+        ).fetchall()
+    if rows:
+        return rows
+    return [
+        {
+            "name": "Tasha M.",
+            "achievement": "Started a warehouse role",
+            "story": "Tasha rebuilt her resume, practiced her interview answers, and accepted a full-time offer with benefits.",
+        },
+        {
+            "name": "Derrick R.",
+            "achievement": "Got his ID and first interview",
+            "story": "One document at a time turned into one application, then one interview. The next step got clearer.",
+        },
+        {
+            "name": "Angela P.",
+            "achievement": "Entered a medical training path",
+            "story": "After years away from school, Angela found a short training program and built a plan around childcare and transit.",
+        },
+    ]
+
+
+def create_second_chance_success_story(user_id, name, achievement, story):
+    name = (name or "").strip()
+    achievement = (achievement or "").strip()
+    story = (story or "").strip()
+    if not name or not achievement or len(story) < 8:
+        return False
+    with get_db() as conn:
+        conn.execute(
+            """
+            INSERT INTO second_chance_success_stories (
+                name, achievement, story, created_by
+            )
+            VALUES (?, ?, ?, ?)
+            """,
+            (name[:120], achievement[:160], story[:700], user_id),
+        )
+    return True
+
+
+def second_chance_level_context(points):
+    level = max(1, min(35, 1 + points // 20))
+    title = "Starting Fresh"
+    for threshold, name in SECOND_CHANCE_LEVELS:
+        if level >= threshold:
+            title = name
+            break
+    next_threshold = next((threshold for threshold, _ in reversed(SECOND_CHANCE_LEVELS) if threshold > level), 35)
+    next_points = max(0, (next_threshold - level) * 20)
+    return {
+        "points": points,
+        "level": level,
+        "title": title,
+        "next_points": next_points,
+        "progress": min(100, int((level / 35) * 100)),
+    }
+
+
+def second_chance_journey_context(profile, checklist, applications, saved_jobs, challenges, community_posts):
+    completed = {item["key"] for item in checklist if item["completed"]}
+    applied_count = sum(1 for app_item in applications if app_item["status"] in {"Applied", "Interview", "Offer"})
+    interview_count = sum(1 for app_item in applications if app_item["status"] in {"Interview", "Offer"})
+    offer_count = sum(1 for app_item in applications if app_item["status"] == "Offer")
+    saved_applied = sum(1 for job in saved_jobs if job["saved_status"] in {"applied", "interview", "offer", "hired"})
+    saved_interviews = sum(1 for job in saved_jobs if job["saved_status"] in {"interview", "offer", "hired"})
+    hired_count = sum(1 for job in saved_jobs if job["saved_status"] == "hired")
+    challenge_count = sum(1 for item in challenges if item["completed"])
+    points = (
+        len(completed) * 8
+        + len(applications) * 7
+        + applied_count * 6
+        + interview_count * 12
+        + offer_count * 16
+        + saved_applied * 6
+        + saved_interviews * 10
+        + hired_count * 24
+        + challenge_count * 8
+        + len(community_posts) * 3
+    )
+    milestones = [
+        {
+            "title": "Account created",
+            "detail": "You opened the door and started your Second Chance Careers account.",
+            "completed": True,
+            "meta": (profile.join_date or "")[:10] or "Started",
+        },
+        {
+            "title": "ID started / completed",
+            "detail": "Gather IDs, certificates, records, and documents that can slow applications down.",
+            "completed": "step-4" in completed,
+            "meta": "Complete" if "step-4" in completed else "Next step",
+        },
+        {
+            "title": "Resume built",
+            "detail": "Build a resume packet that tells the truth with confidence and focus.",
+            "completed": "step-3" in completed,
+            "meta": "Complete" if "step-3" in completed else "In progress",
+        },
+        {
+            "title": "First job application submitted",
+            "detail": "Save or submit the first application so momentum becomes visible.",
+            "completed": bool(applied_count or saved_applied),
+            "meta": f"{applied_count + saved_applied} tracked" if (applied_count or saved_applied) else "Waiting",
+        },
+        {
+            "title": "Interview scheduled",
+            "detail": "Practice answers, prepare documents, and show up ready.",
+            "completed": bool(interview_count or saved_interviews),
+            "meta": f"{interview_count + saved_interviews} interview step" if (interview_count or saved_interviews) else "Ahead",
+        },
+        {
+            "title": "Hired",
+            "detail": "Celebrate the win and keep building toward stability.",
+            "completed": bool(hired_count or offer_count),
+            "meta": "Hired / offer" if (hired_count or offer_count) else "Coming",
+        },
+    ]
+    progress = int((sum(1 for item in milestones if item["completed"]) / len(milestones)) * 100)
+    if progress >= 100:
+        encouragement = "You are not just tracking steps now. You are building proof of movement."
+    elif progress >= 50:
+        encouragement = "You have real momentum. Keep stacking small wins until the next door opens."
+    else:
+        encouragement = "Start small today. One document, one application, or one follow-up still counts."
+    return {
+        "milestones": milestones,
+        "progress": progress,
+        "encouragement": encouragement,
+        "level": second_chance_level_context(points),
+    }
+
+
+def second_chance_encouragement(kind="return"):
+    messages = {
+        "task": "That step counts. Progress is built one completed action at a time.",
+        "challenge": "Mission complete. You kept a promise to your future self.",
+        "post": "Thank you for sharing the win. Somebody else may need to see that hope is still moving.",
+        "reaction": "Encouragement matters. You helped someone feel less alone in the work.",
+        "setback": "A no is not the end of the path. Adjust, breathe, and take the next practical step.",
+        "return": "Welcome back. Pick one small action and let that be enough for today.",
+    }
+    return messages.get(kind, messages["return"])
 
 
 def form_bool(name):
@@ -2590,8 +3040,9 @@ def save_job(job_id):
                 """,
                 (profile.id, job_id),
             )
+            record_second_chance_activity(profile.id, conn)
             track_onboarding_event("first_action_taken", profile.id, {"action": "job_saved"}, conn)
-            flash("Job saved to My Path.")
+            flash("Job saved to My Journey.")
     return redirect(request.referrer or url_for("jobs"))
 
 
@@ -2618,6 +3069,7 @@ def mark_job_applied(job_id):
                 """,
                 (profile.id, job_id),
             )
+            record_second_chance_activity(profile.id, conn)
     if applied_job:
         create_second_chance_application(
             profile.id,
@@ -2626,7 +3078,7 @@ def mark_job_applied(job_id):
             applied_job["apply_link"],
             applied_job["background_notes"],
         )
-        flash("Marked as applied and added to your application tracker.")
+        flash("Marked as applied and added to your application tracker. That step counts.")
     return redirect(request.referrer or url_for("second_chance_my_path"))
 
 
@@ -2660,7 +3112,8 @@ def update_saved_job_status(job_id):
                 """,
                 (profile.id, job_id, status, status),
             )
-            flash("Job status updated.")
+            record_second_chance_activity(profile.id, conn)
+            flash(second_chance_encouragement("setback" if status == "rejected" else "task"))
     return redirect(request.referrer or url_for("second_chance_my_path"))
 
 
@@ -2678,9 +3131,44 @@ def second_chance_my_path():
             item_key = request.form.get("item_key", "").strip()
             completed = request.form.get("completed") == "1"
             if update_second_chance_checklist_item(profile.id, item_key, completed):
-                flash("Checklist updated.")
+                record_second_chance_activity(profile.id)
+                flash(second_chance_encouragement("task"))
             else:
                 flash("That checklist item was not found.")
+        elif action == "complete_challenge":
+            challenge_key = request.form.get("challenge_key", "").strip()
+            if complete_second_chance_challenge(profile.id, challenge_key):
+                flash(second_chance_encouragement("challenge"))
+            else:
+                flash("That weekly challenge was not found.")
+        elif action == "add_community_post":
+            if create_second_chance_community_post(
+                profile.id,
+                request.form.get("body", ""),
+                request.form.get("milestone", ""),
+            ):
+                flash(second_chance_encouragement("post"))
+            else:
+                flash("Write a short update before posting.")
+        elif action == "react_to_post":
+            post_id = request.form.get("post_id", type=int)
+            reaction = request.form.get("reaction", "").strip()
+            if post_id and react_to_second_chance_post(profile.id, post_id, reaction):
+                flash(second_chance_encouragement("reaction"))
+            else:
+                flash("That reaction could not be saved.")
+        elif action == "add_success_story":
+            if not (profile.is_admin or profile.is_founder):
+                flash("Only admins can add success stories right now.")
+            elif create_second_chance_success_story(
+                profile.id,
+                request.form.get("name", ""),
+                request.form.get("achievement", ""),
+                request.form.get("story", ""),
+            ):
+                flash("Success story added to the wall.")
+            else:
+                flash("Name, achievement, and story are required.")
         elif action == "add_application":
             if create_second_chance_application(
                 profile.id,
@@ -2689,7 +3177,7 @@ def second_chance_my_path():
                 request.form.get("resource_url", ""),
                 request.form.get("notes", ""),
             ):
-                flash("Application saved.")
+                flash(second_chance_encouragement("task"))
             else:
                 flash("Company name is required to save an application.")
         elif action == "update_application":
@@ -2700,7 +3188,10 @@ def second_chance_my_path():
                 application_id,
                 status,
             ):
-                flash("Application status updated.")
+                if status == "Closed":
+                    flash(second_chance_encouragement("setback"))
+                else:
+                    flash(second_chance_encouragement("task"))
             else:
                 flash("That application could not be updated.")
         return redirect(url_for("second_chance_my_path"))
@@ -2709,6 +3200,9 @@ def second_chance_my_path():
     completed_count = sum(1 for item in checklist if item["completed"])
     applications = get_second_chance_applications(profile.id)
     saved_jobs = get_saved_jobs(profile.id)
+    weekly_challenges = get_second_chance_weekly_challenges(profile.id)
+    community_posts = get_second_chance_community_posts()
+    journey = second_chance_journey_context(profile, checklist, applications, saved_jobs, weekly_challenges, community_posts)
     return render_template(
         "second_chance/my_path.html",
         profile=profile,
@@ -2717,6 +3211,13 @@ def second_chance_my_path():
         total_steps=len(checklist),
         applications=applications,
         saved_jobs=saved_jobs,
+        weekly_challenges=weekly_challenges,
+        streak=get_second_chance_streak(profile.id),
+        journey=journey,
+        community_posts=community_posts,
+        success_stories=get_second_chance_success_stories(),
+        circles=SECOND_CHANCE_CIRCLES,
+        return_encouragement=second_chance_encouragement("return"),
         job_help=SECOND_CHANCE_JOB_HELP,
         features=SECOND_CHANCE_FEATURES,
         resource_groups=SECOND_CHANCE_RESOURCE_GROUPS,

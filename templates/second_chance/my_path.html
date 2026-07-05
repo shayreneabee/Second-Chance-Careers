@@ -1,226 +1,297 @@
 {% extends "second_chance/base.html" %}
 
-{% block title %}My Path | Second Chance Careers{% endblock %}
+{% block title %}My Journey | Second Chance Careers{% endblock %}
 
 {% block head %}
 <style>
-  .path-hero {
-    padding: 1.4rem 1rem;
+  .journey-hero {
+    display: grid;
+    gap: 1rem;
+    padding: clamp(1.4rem, 5vw, 3rem) 1rem;
     background:
-      linear-gradient(180deg, rgba(15, 111, 107, 0.78), rgba(15, 111, 107, 0.94)),
+      linear-gradient(135deg, rgba(7, 21, 20, 0.78), rgba(15, 111, 107, 0.9)),
       url("{{ url_for('static', filename='second_chance/road-crop.png') }}") center / cover no-repeat;
     color: white;
   }
 
-  .path-hero h1 {
+  .journey-hero h1 {
     margin: 0;
     color: var(--sc-cream);
-    font-size: clamp(2.3rem, 8vw, 4.2rem);
-    line-height: 1;
+    font-size: clamp(2.45rem, 9vw, 5rem);
+    line-height: 0.95;
     font-weight: 400;
   }
 
-  .path-hero p {
-    margin: 0.75rem 0 0;
-    max-width: 690px;
-    color: rgba(255, 255, 255, 0.9);
+  .journey-hero p {
+    max-width: 780px;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.92);
   }
 
-  .dashboard-summary {
-    display: grid;
-    gap: 0.8rem;
-    padding: 1rem;
-    background: rgba(242, 255, 168, 0.36);
+  .journey-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
   }
 
-  .summary-card,
-  .checklist-card,
-  .applications-card,
-  .help-card,
-  .document-card,
-  .resource-strip-card {
-    background: rgba(255, 255, 255, 0.78);
-    border: 1px solid var(--sc-line);
-    border-radius: var(--sc-radius);
-    box-shadow: var(--sc-lift);
-  }
-
-  .summary-card {
-    min-height: 86px;
-    padding: 1rem;
-  }
-
-  .summary-card small {
-    color: var(--sc-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 800;
-  }
-
-  .summary-card strong {
-    display: block;
-    margin-top: 0.25rem;
-    color: var(--sc-teal-dark);
-    font-size: 1.45rem;
-    line-height: 1.05;
-  }
-
-  .dashboard-grid {
+  .journey-shell {
     display: grid;
     gap: 1rem;
     padding: 1rem;
   }
 
-  .checklist-card,
-  .document-card,
-  .applications-card {
+  .journey-card,
+  .timeline-card,
+  .challenge-card,
+  .feed-card,
+  .circle-card,
+  .application-item,
+  .resource-card {
+    border: 1px solid var(--sc-line);
+    border-radius: var(--sc-radius);
+    background: rgba(255, 255, 255, 0.84);
+    box-shadow: var(--sc-lift);
+  }
+
+  .journey-card {
     padding: 1rem;
   }
 
-  .checklist-card h2,
-  .applications-card h2,
-  .document-card h2,
-  .job-section h2 {
-    margin: 0 0 0.85rem;
-    color: var(--sc-teal-dark);
-    font-size: 1.75rem;
-    line-height: 1.05;
-    font-weight: 400;
-  }
-
-  .path-checklist {
-    display: grid;
-    gap: 0.75rem;
+  .journey-card h2,
+  .journey-card h3,
+  .timeline-card h3,
+  .challenge-card h3,
+  .feed-card h3,
+  .circle-card h3 {
     margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .path-checklist li {
-    display: grid;
-    grid-template-columns: 32px 1fr;
-    gap: 0.75rem;
-    align-items: start;
-    padding: 0.45rem 0;
-  }
-
-  .check-form {
-    display: contents;
-  }
-
-  .path-checklist input {
-    width: 22px;
-    height: 22px;
-    margin-top: 0.2rem;
-    accent-color: var(--sc-teal);
-  }
-
-  .path-checklist strong {
-    display: block;
-    color: #143f3b;
-  }
-
-  .path-checklist p {
-    margin: 0.2rem 0 0;
-    color: #42615e;
-    font-size: 0.95rem;
-  }
-
-  .step-link {
-    display: inline-flex;
-    width: fit-content;
-    margin-top: 0.45rem;
     color: var(--sc-teal-dark);
-    font-size: 0.84rem;
-    font-weight: 900;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    line-height: 1.05;
   }
 
-  .step-link:hover {
-    text-decoration: underline;
+  .journey-card p,
+  .timeline-card p,
+  .challenge-card p,
+  .feed-card p,
+  .circle-card p,
+  .empty-state {
+    margin: 0;
+    color: #42615e;
   }
 
-  .next-step {
-    margin: 1rem 0 0;
-    padding: 0.85rem;
-    border-radius: var(--sc-radius-sm);
-    background: rgba(242, 255, 168, 0.55);
-    color: #173f3c;
-  }
-
-  .next-step small {
-    display: block;
+  .journey-kicker,
+  .journey-card small,
+  .timeline-card small,
+  .challenge-card small,
+  .feed-card small,
+  .circle-card small {
     color: var(--sc-muted);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+  }
+
+  .journey-summary {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .progress-card {
+    display: grid;
+    gap: 0.8rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(242, 255, 168, 0.42));
+  }
+
+  .progress-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: end;
+  }
+
+  .progress-row strong {
+    color: var(--sc-teal-dark);
+    font-size: clamp(2rem, 8vw, 4rem);
+    line-height: 0.9;
+  }
+
+  .meter {
+    height: 0.85rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(15, 111, 107, 0.14);
+  }
+
+  .meter span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--sc-teal), #78a642, var(--sc-cream));
+  }
+
+  .stats-grid,
+  .journey-grid,
+  .challenge-grid,
+  .feed-grid,
+  .circle-grid,
+  .resource-grid,
+  .application-list {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .stat-card strong {
+    display: block;
+    margin-top: 0.2rem;
+    color: var(--sc-teal-dark);
+    font-size: 1.45rem;
+    line-height: 1;
+  }
+
+  .timeline {
+    position: relative;
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 1.05rem;
+    top: 0.7rem;
+    bottom: 0.7rem;
+    width: 3px;
+    border-radius: 999px;
+    background: rgba(15, 111, 107, 0.18);
+  }
+
+  .timeline-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    gap: 0.75rem;
+    padding: 0.9rem;
+  }
+
+  .timeline-dot {
+    position: relative;
+    z-index: 1;
+    width: 2.1rem;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: #d7e6df;
+    color: #173f3c;
     font-weight: 900;
   }
 
-  .applications-card {
-    margin: 0 1rem 1rem;
+  .timeline-card.done .timeline-dot {
+    background: var(--sc-teal);
+    color: var(--sc-cream);
   }
 
-  .application-form {
+  .timeline-copy {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .challenge-card,
+  .feed-card,
+  .circle-card,
+  .resource-card,
+  .application-item {
+    display: grid;
+    gap: 0.55rem;
+    padding: 1rem;
+  }
+
+  .challenge-card.done {
+    background: rgba(242, 255, 168, 0.58);
+  }
+
+  .challenge-card form,
+  .reaction-row,
+  .saved-job-actions,
+  .form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .mini-button {
+    min-height: 36px;
+    border: 1px solid rgba(15, 111, 107, 0.18);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--sc-teal-dark);
+    padding: 0.38rem 0.75rem;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .mini-button:hover {
+    background: var(--sc-cream);
+  }
+
+  .community-form,
+  .application-form,
+  .success-form {
     display: grid;
     gap: 0.65rem;
-    margin-bottom: 1rem;
   }
 
+  .community-form input,
+  .community-form textarea,
   .application-form input,
   .application-form textarea,
+  .success-form input,
+  .success-form textarea,
   .status-form select {
     width: 100%;
     border: 1px solid var(--sc-line);
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.82);
+    background: rgba(255, 255, 255, 0.88);
     color: #144a39;
     padding: 0.72rem 0.82rem;
     outline: 0;
   }
 
-  .application-form textarea {
+  .community-form textarea,
+  .application-form textarea,
+  .success-form textarea {
     min-height: 86px;
     resize: vertical;
   }
 
-  .application-list {
-    display: grid;
-    gap: 0.7rem;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .application-item {
-    display: grid;
-    gap: 0.6rem;
-    padding: 0.85rem;
-    border: 1px solid rgba(15, 111, 107, 0.12);
-    border-radius: var(--sc-radius-sm);
-    background: rgba(255, 255, 255, 0.68);
-  }
-
+  .feed-card strong,
   .application-item h3 {
-    margin: 0;
     color: var(--sc-teal-dark);
-    font-size: 1.12rem;
-    line-height: 1.05;
   }
 
-  .application-item p {
-    margin: 0;
-    color: #42615e;
-    font-size: 0.92rem;
+  .reaction-row span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    border-radius: 999px;
+    background: rgba(15, 111, 107, 0.09);
+    color: #244c49;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.82rem;
+    font-weight: 800;
+  }
+
+  .applications-section {
+    display: grid;
+    gap: 1rem;
   }
 
   .application-meta {
     display: flex;
     flex-wrap: wrap;
     gap: 0.45rem;
-    align-items: center;
     color: var(--sc-muted);
-    font-size: 0.86rem;
+    font-size: 0.88rem;
   }
 
   .application-meta a {
@@ -228,128 +299,23 @@
     font-weight: 900;
   }
 
-  .saved-job-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
   .status-form {
     display: grid;
     gap: 0.45rem;
   }
 
-  .empty-state {
-    margin: 0;
-    color: #42615e;
-  }
-
-  .document-list {
-    display: grid;
-    gap: 0.65rem;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .document-list li {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.7rem 0;
-    border-bottom: 1px solid rgba(15, 111, 107, 0.12);
-    color: #173f3c;
-  }
-
-  .document-list span {
-    color: var(--sc-teal-dark);
-    font-weight: 800;
-  }
-
-  .job-section {
-    padding: 1rem 1rem 2rem;
-  }
-
-  .job-help-grid {
-    display: grid;
-    gap: 0.85rem;
-  }
-
-  .help-card {
-    min-height: 246px;
-    display: flex;
-    flex-direction: column;
-    padding: 1rem;
-    transition: transform var(--sc-ease), box-shadow var(--sc-ease), background var(--sc-ease);
-  }
-
-  .help-card:hover {
-    transform: translateY(-2px);
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: var(--sc-lift-strong);
-  }
-
-  .help-card small {
-    color: var(--sc-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 800;
-  }
-
-  .help-card h3 {
-    margin: 0.25rem 0 0.45rem;
-    color: var(--sc-teal-dark);
-    font-size: 1.35rem;
-    line-height: 1.05;
-  }
-
-  .help-card p {
-    margin: 0 0 0.9rem;
-    color: #42615e;
-  }
-
-  .help-card .sc-button {
-    margin-top: auto;
-  }
-
-  .resource-strip {
-    display: grid;
-    gap: 0.75rem;
-    padding: 0 1rem 2rem;
-  }
-
-  .resource-strip-card {
-    padding: 1rem;
-    color: var(--sc-teal-dark);
-    transition: 0.18s ease;
-  }
-
-  .resource-strip-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 16px 34px rgba(5, 55, 52, 0.15);
-  }
-
-  .resource-strip-card small {
-    color: var(--sc-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 800;
-  }
-
-  .resource-strip-card strong {
-    display: block;
-    margin-top: 0.25rem;
-    font-size: 1.18rem;
-    line-height: 1.05;
+  .circle-card {
+    background:
+      radial-gradient(circle at 92% 10%, rgba(242, 255, 168, 0.46), transparent 7rem),
+      rgba(255, 255, 255, 0.86);
   }
 
   .start-panel {
-    margin: 0 1rem 2rem;
     padding: 1.25rem 1rem;
+    border-radius: var(--sc-radius);
     background: var(--sc-teal);
     color: var(--sc-cream);
     text-align: center;
-    border-radius: var(--sc-radius);
     box-shadow: var(--sc-lift);
   }
 
@@ -362,259 +328,360 @@
 
   .start-panel p {
     margin: 0.65rem auto 1rem;
-    max-width: 620px;
+    max-width: 680px;
     color: rgba(242, 255, 168, 0.88);
   }
 
   @media (min-width: 760px) {
-    .path-hero {
+    .journey-hero {
       padding: 3rem 2rem;
     }
 
-    .dashboard-summary {
-      grid-template-columns: repeat(3, 1fr);
-      padding: 1.4rem 2rem;
-    }
-
-    .dashboard-grid {
-      grid-template-columns: 1.4fr 0.9fr;
+    .journey-shell {
       padding: 2rem;
     }
 
-    .applications-card {
-      margin: 0 2rem 2rem;
+    .journey-summary {
+      grid-template-columns: 1.25fr 0.75fr;
     }
 
-    .application-form {
+    .stats-grid,
+    .challenge-grid,
+    .feed-grid,
+    .circle-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .journey-grid,
+    .applications-section {
+      grid-template-columns: 1.2fr 0.8fr;
+    }
+
+    .application-form,
+    .success-form {
       grid-template-columns: repeat(2, 1fr);
-      align-items: start;
     }
 
     .application-form textarea,
-    .application-form .sc-button {
+    .application-form .sc-button,
+    .success-form textarea,
+    .success-form .sc-button {
       grid-column: 1 / -1;
     }
 
     .application-list {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .job-section {
-      padding: 0 2rem 2rem;
-    }
-
-    .job-help-grid {
-      grid-template-columns: repeat(4, 1fr);
-    }
-
-    .resource-strip {
-      grid-template-columns: repeat(5, 1fr);
-      padding: 0 2rem 2rem;
-    }
-
-    .start-panel {
-      margin: 0 2rem 2.5rem;
-      padding: 2rem;
+    .resource-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
     }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="path-hero">
-  <h1>{{ profile.display_name }}'s Path</h1>
-  <p>Start where you are. This dashboard saves your practical steps, tracks applications, and keeps the next move clear when you come back.</p>
+<section class="journey-hero">
+  <p class="journey-kicker">My Journey</p>
+  <h1>{{ profile.display_name }}'s Journey</h1>
+  <p>{{ journey.encouragement }}</p>
+  <div class="journey-actions">
+    <a class="sc-button" href="{{ url_for('jobs') }}">Find Jobs</a>
+    <a class="sc-button" href="{{ url_for('second_chance_resource_page', slug='resume-interview') }}">Resume Help</a>
+    <a class="sc-button" href="{{ url_for('second_chance_edit_profile') }}">Update Profile</a>
+  </div>
 </section>
 
-<section class="dashboard-summary" aria-label="Path summary">
-  <article class="summary-card">
-    <small>Progress</small>
-    <strong>{{ completed_count }} of {{ total_steps }} Done</strong>
-  </article>
-  <article class="summary-card">
-    <small>Applications</small>
-    <strong>{{ applications|length }} Saved</strong>
-  </article>
-  <article class="summary-card">
-    <small>Next Step</small>
-    <strong>
-      {% set next_items = checklist|rejectattr('completed')|list %}
-      {{ next_items[0].title if next_items else "Keep Going" }}
-    </strong>
-  </article>
-</section>
+<div class="journey-shell">
+  <section class="journey-summary" aria-label="Journey summary">
+    <article class="journey-card progress-card">
+      <div class="progress-row">
+        <div>
+          <small>Journey progress</small>
+          <h2>{{ journey.progress }}% complete</h2>
+        </div>
+        <strong>{{ journey.level.level }}</strong>
+      </div>
+      <div class="meter" aria-label="Journey progress"><span style="width: {{ journey.progress }}%;"></span></div>
+      <p>{{ return_encouragement }}</p>
+    </article>
 
-<section class="dashboard-grid">
-  <article class="checklist-card">
-    <h2>Job Readiness Checklist</h2>
-    <ul class="path-checklist">
-      {% for item in checklist %}
-        <li>
-          <form class="check-form" method="POST">
-            <input type="hidden" name="action" value="toggle_checklist">
-            <input type="hidden" name="item_key" value="{{ item.key }}">
-            <input
-              type="checkbox"
-              name="completed"
-              value="1"
-              {% if item.completed %}checked{% endif %}
-              aria-label="{{ item.title }}"
-              onchange="this.form.submit()"
-            >
+    <article class="journey-card progress-card">
+      <small>Current level</small>
+      <h2>Level {{ journey.level.level }}: {{ journey.level.title }}</h2>
+      <div class="meter" aria-label="Level progress"><span style="width: {{ journey.level.progress }}%;"></span></div>
+      <p>{{ journey.level.points }} progress points earned{% if journey.level.next_points %}. {{ journey.level.next_points }} points until the next milestone level.{% endif %}</p>
+    </article>
+  </section>
+
+  <section class="stats-grid" aria-label="Progress stats">
+    <article class="journey-card stat-card"><small>Readiness</small><strong>{{ completed_count }} / {{ total_steps }}</strong><p>Checklist steps complete</p></article>
+    <article class="journey-card stat-card"><small>Applications</small><strong>{{ applications|length }}</strong><p>Tracked applications</p></article>
+    <article class="journey-card stat-card"><small>Saved jobs</small><strong>{{ saved_jobs|length }}</strong><p>Opportunities in your plan</p></article>
+    <article class="journey-card stat-card"><small>Streak</small><strong>{{ streak.days }}</strong><p>{{ streak.message }}</p></article>
+    <article class="journey-card stat-card"><small>Weekly missions</small><strong>{{ weekly_challenges|selectattr('completed')|list|length }} / {{ weekly_challenges|length }}</strong><p>Challenges complete this week</p></article>
+    <article class="journey-card stat-card"><small>Community</small><strong>{{ community_posts|length }}</strong><p>Updates and wins shared</p></article>
+  </section>
+
+  <section class="journey-grid">
+    <article class="journey-card">
+      <small>Timeline</small>
+      <h2>Milestones that show movement</h2>
+      <div class="timeline">
+        {% for milestone in journey.milestones %}
+          <article class="timeline-card {{ 'done' if milestone.completed else '' }}">
+            <span class="timeline-dot">{{ "✓" if milestone.completed else loop.index }}</span>
+            <div class="timeline-copy">
+              <small>{{ milestone.meta }}</small>
+              <h3>{{ milestone.title }}</h3>
+              <p>{{ milestone.detail }}</p>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="journey-card">
+      <small>Readiness checklist</small>
+      <h2>Practical steps</h2>
+      <div class="timeline">
+        {% for item in checklist %}
+          <article class="timeline-card {{ 'done' if item.completed else '' }}">
+            <form method="POST">
+              <input type="hidden" name="action" value="toggle_checklist">
+              <input type="hidden" name="item_key" value="{{ item.key }}">
+              <button class="timeline-dot" name="completed" value="{{ '' if item.completed else '1' }}" type="submit" aria-label="{{ 'Undo' if item.completed else 'Complete' }} {{ item.title }}">{{ "✓" if item.completed else loop.index }}</button>
+            </form>
+            <div class="timeline-copy">
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.detail }}</p>
+              {% if item.key == "step-1" %}
+                <a class="mini-button" href="{{ url_for('second_chance_edit_profile') }}">Start profile</a>
+              {% elif item.key == "step-2" %}
+                <a class="mini-button" href="{{ url_for('second_chance_search') }}">Choose path</a>
+              {% elif item.key == "step-3" %}
+                <a class="mini-button" href="{{ url_for('second_chance_resource_page', slug='resume-interview') }}">Resume help</a>
+              {% elif item.key == "step-4" %}
+                <a class="mini-button" href="{{ url_for('second_chance_resource_page', slug='documents-id') }}">Document help</a>
+              {% elif item.key == "step-5" %}
+                <a class="mini-button" href="{{ url_for('second_chance_resource_page', slug='resume-interview') }}">Interview prep</a>
+              {% elif item.key == "step-6" %}
+                <a class="mini-button" href="{{ url_for('second_chance_resource_page', slug='quick-hire-applications') }}">Apply now</a>
+              {% endif %}
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+
+  <section class="journey-card" aria-labelledby="weekly-challenges-title">
+    <small>Weekly challenges</small>
+    <h2 id="weekly-challenges-title">Career missions for this week</h2>
+    <div class="challenge-grid">
+      {% for challenge in weekly_challenges %}
+        <article class="challenge-card {{ 'done' if challenge.completed else '' }}">
+          <small>{{ "Complete" if challenge.completed else challenge.points ~ " points" }}</small>
+          <h3>{{ challenge.title }}</h3>
+          <p>{{ challenge.detail }}</p>
+          <form method="POST">
+            <input type="hidden" name="action" value="complete_challenge">
+            <input type="hidden" name="challenge_key" value="{{ challenge.key }}">
+            <button class="sc-button" type="submit" {% if challenge.completed %}disabled{% endif %}>{{ "Completed" if challenge.completed else "Mark Complete" }}</button>
           </form>
-          <div>
-            <strong>{{ item.title }}</strong>
-            <p>{{ item.detail }}</p>
-            {% if item.key == "step-1" %}
-              <a class="step-link" href="{{ url_for('second_chance_edit_profile') }}">Start profile</a>
-            {% elif item.key == "step-2" %}
-              <a class="step-link" href="{{ url_for('second_chance_search') }}">Choose path</a>
-            {% elif item.key == "step-3" %}
-              <a class="step-link" href="{{ url_for('second_chance_resource_page', slug='resume-interview') }}">Resume help</a>
-            {% elif item.key == "step-4" %}
-              <a class="step-link" href="{{ url_for('second_chance_resource_page', slug='documents-id') }}">Document help</a>
-            {% elif item.key == "step-5" %}
-              <a class="step-link" href="{{ url_for('second_chance_resource_page', slug='resume-interview') }}">Interview prep</a>
-            {% elif item.key == "step-6" %}
-              <a class="step-link" href="{{ url_for('second_chance_resource_page', slug='quick-hire-applications') }}">Apply now</a>
-            {% endif %}
-          </div>
-        </li>
+        </article>
       {% endfor %}
-    </ul>
-    {% set next_items = checklist|rejectattr('completed')|list %}
-    <div class="next-step">
-      <small>Next suggested step</small>
-      <strong>{{ next_items[0].title if next_items else "All readiness steps are checked. Keep applying and following up." }}</strong>
     </div>
-  </article>
+  </section>
 
-  <article class="document-card">
-    <h2>Resume Packet</h2>
-    <ul class="document-list">
-      <li>Resume draft <a href="{{ url_for('second_chance_resource_page', slug='resume-interview') }}"><span>Start</span></a></li>
-      <li>ID / documents <a href="{{ url_for('second_chance_resource_page', slug='documents-id') }}"><span>Track</span></a></li>
-      <li>Interview answers <a href="{{ url_for('second_chance_resource_page', slug='resume-interview') }}"><span>Practice</span></a></li>
-      <li>References <a href="{{ url_for('second_chance_resource_page', slug='career-workforce') }}"><span>Add</span></a></li>
-      <li>Applications <a href="{{ url_for('second_chance_resource_page', slug='quick-hire-applications') }}"><span>Apply</span></a></li>
-    </ul>
-  </article>
-</section>
+  <section class="applications-section">
+    <article class="journey-card">
+      <small>Application tracker</small>
+      <h2>Track the doors you're knocking on</h2>
+      <form class="application-form" method="POST">
+        <input type="hidden" name="action" value="add_application">
+        <input name="company" placeholder="Company or program" required>
+        <input name="role" placeholder="Role or opportunity">
+        <input name="resource_url" type="url" placeholder="Application link">
+        <textarea name="notes" placeholder="Notes, contact name, interview time, or follow-up reminder"></textarea>
+        <button class="sc-button" type="submit">Save Application</button>
+      </form>
+    </article>
 
-<section class="applications-card">
-  <h2>Applications Tracker</h2>
-  <form class="application-form" method="POST">
-    <input type="hidden" name="action" value="add_application">
-    <input name="company" placeholder="Company or program" required>
-    <input name="role" placeholder="Role or opportunity">
-    <input name="resource_url" type="url" placeholder="Application link">
-    <textarea name="notes" placeholder="Notes, contact name, interview time, or follow-up reminder"></textarea>
-    <button class="sc-button" type="submit">Save Application</button>
-  </form>
+    <article class="journey-card">
+      <small>Encouragement</small>
+      <h2>Setbacks are data, not identity.</h2>
+      <p>If a role closes, mark it and keep moving. The goal is not perfection. The goal is another practical step.</p>
+    </article>
+  </section>
 
   {% if applications %}
-    <ul class="application-list">
+    <section class="application-list" aria-label="Tracked applications">
       {% for application in applications %}
-        <li class="application-item">
+        <article class="application-item">
           <div>
             <h3>{{ application.company }}</h3>
-            {% if application.role %}
-              <p>{{ application.role }}</p>
-            {% endif %}
+            {% if application.role %}<p>{{ application.role }}</p>{% endif %}
           </div>
           <div class="application-meta">
             <span>Status: {{ application.status }}</span>
             {% if application.resource_url %}
-              <a href="{{ application.resource_url }}" target="_blank" rel="noopener noreferrer">Open link ↗</a>
+              <a href="{{ application.resource_url }}" target="_blank" rel="noopener noreferrer">Open link</a>
             {% endif %}
           </div>
-          {% if application.notes %}
-            <p>{{ application.notes }}</p>
-          {% endif %}
+          {% if application.notes %}<p>{{ application.notes }}</p>{% endif %}
           <form class="status-form" method="POST">
             <input type="hidden" name="action" value="update_application">
             <input type="hidden" name="application_id" value="{{ application.id }}">
-            <select name="status" onchange="this.form.submit()" aria-label="Application status for {{ application.company }}">
+            <label class="sr-only" for="application-status-{{ application.id }}">Application status for {{ application.company }}</label>
+            <select id="application-status-{{ application.id }}" name="status" onchange="this.form.submit()">
               {% for status in ["Interested", "Applied", "Interview", "Offer", "Closed"] %}
                 <option value="{{ status }}" {% if application.status == status %}selected{% endif %}>{{ status }}</option>
               {% endfor %}
             </select>
           </form>
-        </li>
+        </article>
       {% endfor %}
-    </ul>
+    </section>
   {% else %}
-    <p class="empty-state">No applications saved yet. Add the first one after you apply or find a job you want to track.</p>
+    <article class="journey-card"><p class="empty-state">No applications saved yet. Add the first one after you apply or find a job you want to track.</p></article>
   {% endif %}
-</section>
 
-<section class="applications-card">
-  <h2>Saved Jobs</h2>
-  {% if saved_jobs %}
-    <ul class="application-list">
-      {% for job in saved_jobs %}
-        <li class="application-item">
-          <div>
+  <section class="journey-card">
+    <small>Saved jobs</small>
+    <h2>Opportunities you're watching</h2>
+    {% if saved_jobs %}
+      <div class="application-list">
+        {% for job in saved_jobs %}
+          <article class="application-item">
             <h3>{{ job.job_title }}</h3>
             <p>{{ job.company_name }}{% if job.location or job.city or job.state %} · {{ job.location or [job.city, job.state]|select|join(', ') }}{% endif %}</p>
+            <div class="application-meta">
+              <span>Status: {{ job.saved_status|title }}</span>
+              {% if job.pay_range %}<span>{{ job.pay_range }}</span>{% endif %}
+              {% if job.employment_type %}<span>{{ job.employment_type }}</span>{% endif %}
+            </div>
+            <div class="saved-job-actions">
+              {% if job.apply_link %}
+                <a class="sc-button" href="{{ job.apply_link }}" target="_blank" rel="noopener">Apply Link</a>
+              {% endif %}
+              <form method="post" action="{{ url_for('mark_job_applied', job_id=job.id) }}">
+                <button class="sc-button" type="submit">Mark Applied</button>
+              </form>
+              <form class="status-form" method="post" action="{{ url_for('update_saved_job_status', job_id=job.id) }}">
+                <label class="sr-only" for="saved-job-status-{{ job.id }}">Saved job status for {{ job.job_title }}</label>
+                <select id="saved-job-status-{{ job.id }}" name="status" onchange="this.form.submit()">
+                  {% for status in ["saved", "applied", "interview", "offer", "rejected", "hired"] %}
+                    <option value="{{ status }}" {% if job.saved_status == status %}selected{% endif %}>{{ status|title }}</option>
+                  {% endfor %}
+                </select>
+              </form>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty-state">No saved jobs yet. Browse the job board and save opportunities you want to track.</p>
+      <div style="margin-top:1rem;"><a class="sc-button" href="{{ url_for('jobs') }}">Browse Jobs</a></div>
+    {% endif %}
+  </section>
+
+  <section class="journey-card" aria-labelledby="community-feed-title">
+    <small>Community feed</small>
+    <h2 id="community-feed-title">Wins, updates, and encouragement</h2>
+    <form class="community-form" method="POST">
+      <input type="hidden" name="action" value="add_community_post">
+      <input name="milestone" placeholder="Milestone, e.g. Interview tomorrow">
+      <textarea name="body" placeholder="Share a win or update: I got my ID today, I have an interview tomorrow, I got hired..." required></textarea>
+      <button class="sc-button" type="submit">Post Update</button>
+    </form>
+    <div class="feed-grid">
+      {% for post in community_posts %}
+        <article class="feed-card">
+          <small>{{ post.milestone }}</small>
+          <h3>{{ post.display_name or "Second Chance Member" }}</h3>
+          <p>{{ post.body }}</p>
+          <div class="reaction-row">
+            <span>Proud of you {{ post.proud_count or 0 }}</span>
+            <span>Keep going {{ post.keep_going_count or 0 }}</span>
+            <span>Congratulations {{ post.congrats_count or 0 }}</span>
           </div>
-          <div class="application-meta">
-            <span>Status: {{ job.saved_status|title }}</span>
-            {% if job.pay_range %}<span>{{ job.pay_range }}</span>{% endif %}
-            {% if job.employment_type %}<span>{{ job.employment_type }}</span>{% endif %}
+          <div class="reaction-row">
+            {% for reaction in ["Proud of you", "Keep going", "Congratulations"] %}
+              <form method="POST">
+                <input type="hidden" name="action" value="react_to_post">
+                <input type="hidden" name="post_id" value="{{ post.id }}">
+                <button class="mini-button" name="reaction" value="{{ reaction }}" type="submit">{{ reaction }}</button>
+              </form>
+            {% endfor %}
           </div>
-          <div class="saved-job-actions">
-            {% if job.apply_link %}
-              <a class="sc-button" href="{{ job.apply_link }}" target="_blank" rel="noopener">Apply Link</a>
-            {% endif %}
-            <form method="post" action="{{ url_for('mark_job_applied', job_id=job.id) }}">
-              <button class="sc-button" type="submit">Mark Applied</button>
-            </form>
-            <form class="status-form" method="post" action="{{ url_for('update_saved_job_status', job_id=job.id) }}">
-              <select name="status" onchange="this.form.submit()" aria-label="Saved job status for {{ job.job_title }}">
-                {% for status in ["saved", "applied", "interview", "offer", "rejected", "hired"] %}
-                  <option value="{{ status }}" {% if job.saved_status == status %}selected{% endif %}>{{ status|title }}</option>
-                {% endfor %}
-              </select>
-            </form>
-          </div>
-        </li>
+        </article>
+      {% else %}
+        <article class="feed-card">
+          <small>First post</small>
+          <h3>Share the next win</h3>
+          <p>When someone posts "I got my ID today" or "I have an interview tomorrow," the community starts to feel alive.</p>
+        </article>
       {% endfor %}
-    </ul>
-  {% else %}
-    <p class="empty-state">No saved jobs yet. Browse the job board and save opportunities you want to track.</p>
-    <div style="margin-top:1rem;">
-      <a class="sc-button" href="{{ url_for('jobs') }}">Browse Jobs</a>
     </div>
-  {% endif %}
-</section>
+  </section>
 
-<section class="job-section">
-  <h2>Help Finding Jobs</h2>
-  <div class="job-help-grid">
-    {% for help in job_help %}
-      <article class="help-card">
-        <small>{{ help.type }}</small>
-        <h3>{{ help.title }}</h3>
-        <p>{{ help.body }}</p>
-        <a class="sc-button" href="{{ url_for('second_chance_resource_page', slug=help.resource_slug) }}">{{ help.cta }}</a>
-      </article>
-    {% endfor %}
-  </div>
-</section>
+  <section class="journey-card" aria-labelledby="success-wall-title">
+    <small>Success wall</small>
+    <h2 id="success-wall-title">Proof that next chapters happen</h2>
+    <div class="feed-grid">
+      {% for story in success_stories %}
+        <article class="feed-card">
+          <small>{{ story.achievement }}</small>
+          <h3>{{ story.name }}</h3>
+          <p>{{ story.story }}</p>
+        </article>
+      {% endfor %}
+    </div>
+    {% if profile.is_admin or profile.is_founder %}
+      <form class="success-form" method="POST">
+        <input type="hidden" name="action" value="add_success_story">
+        <input name="name" placeholder="Name or initials" required>
+        <input name="achievement" placeholder="Achievement" required>
+        <textarea name="story" placeholder="Short success story" required></textarea>
+        <button class="sc-button" type="submit">Add Success Story</button>
+      </form>
+    {% endif %}
+  </section>
 
-<section class="resource-strip" aria-label="Resource library">
-  {% for group in resource_groups %}
-    <a class="resource-strip-card" href="{{ url_for('second_chance_resource_page', slug=group.slug) }}">
-      <small>Resources</small>
-      <strong>{{ group.title }} ↗</strong>
-    </a>
-  {% endfor %}
-</section>
+  <section class="journey-card" aria-labelledby="circles-title">
+    <small>Second Chance Circles</small>
+    <h2 id="circles-title">Accountability groups for the road ahead</h2>
+    <p>Circles will become small supportive groups where people check in, share resources, and keep each other moving.</p>
+    <div class="circle-grid">
+      {% for circle in circles %}
+        <article class="circle-card">
+          <small>Circle</small>
+          <h3>{{ circle.title }}</h3>
+          <p>{{ circle.detail }}</p>
+          <button class="sc-button" type="button">Join a Circle</button>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
 
-<section class="start-panel">
-  <h2>Your next chapter has a plan.</h2>
-  <p>Keep checking off steps, save each application, and come back to see what needs your attention next.</p>
-  <a class="sc-button" href="{{ url_for('second_chance_profile') }}">View Profile</a>
-</section>
+  <section class="journey-card">
+    <small>Resources</small>
+    <h2>Keep useful help close</h2>
+    <div class="resource-grid">
+      {% for group in resource_groups %}
+        <a class="resource-card" href="{{ url_for('second_chance_resource_page', slug=group.slug) }}">
+          <small>Resources</small>
+          <h3>{{ group.title }}</h3>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="start-panel">
+    <h2>Your next chapter has movement.</h2>
+    <p>Keep checking off steps, save each application, encourage somebody else, and come back to see what needs your attention next.</p>
+    <a class="sc-button" href="{{ url_for('second_chance_profile') }}">View Profile</a>
+  </section>
+</div>
 {% endblock %}

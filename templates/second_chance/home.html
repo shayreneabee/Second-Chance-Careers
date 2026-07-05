@@ -305,8 +305,8 @@
     </article>
     <article class="feature-card">
       <h3>Career Checklist</h3>
-      <p>Use My Path to track documents, applications, saved jobs, and progress without losing your place.</p>
-      <a class="sc-button" href="{{ url_for('second_chance_my_path') }}">Open My Path</a>
+      <p>Use My Journey to track documents, applications, saved jobs, weekly missions, and progress without losing your place.</p>
+      <a class="sc-button" href="{{ url_for('second_chance_my_path') }}">Open My Journey</a>
     </article>
   </div>
 </section>
@@ -333,14 +333,14 @@
 </section>
 
 <section class="path-card" aria-label="Job readiness checklist">
-  <h2>Your job readiness path</h2>
+  <h2>Your job readiness journey</h2>
   <ul class="path-list">
     {% for item in checklist %}
       <li><span>{{ loop.index }}</span>{{ item.title }}</li>
     {% endfor %}
   </ul>
   <div style="margin-top:1rem;">
-    <a class="sc-button" href="{{ url_for('second_chance_my_path') }}">Open My Path</a>
+    <a class="sc-button" href="{{ url_for('second_chance_my_path') }}">Open My Journey</a>
   </div>
 </section>
 
@@ -358,6 +358,6 @@
 <section class="encouragement">
   <h2>Built for second chances, not second thoughts.</h2>
   <p>People need more than a job link. They need a plan, encouragement, and a way to show employers they are ready.</p>
-  <a class="sc-button" href="{{ url_for('second_chance_my_path') }}">Start Your Path</a>
+  <a class="sc-button" href="{{ url_for('second_chance_my_path') }}">Start Your Journey</a>
 </section>
 {% endblock %}
