@@ -16,6 +16,7 @@ from urllib.parse import urlencode
 
 from flask import (
     Flask,
+    Response,
     flash,
     jsonify,
     redirect,
@@ -558,26 +559,26 @@ SECOND_CHANCE_RESOURCE_GROUPS = [
         "items": [
             {
                 "label": "Replace Social Security Card",
-                "url": "https://www.ssa.gov/number-card/replace-card",
-                "note": "Official Social Security Administration replacement card resource.",
+                "url": "/second-chance/documents/social-security-card-checklist",
+                "note": "A plain-language checklist plus official Social Security replacement steps.",
                 "icon": "ID",
             },
             {
                 "label": "State DMV / ID Services",
-                "url": "https://www.usa.gov/state-motor-vehicle-services",
-                "note": "Find state motor vehicle agencies for IDs, licenses, and related records.",
+                "url": "/second-chance/documents/id-checklist",
+                "note": "Track what is needed for a state ID, license, or replacement identification.",
                 "icon": "▣",
             },
             {
                 "label": "Birth Certificate Records",
-                "url": "https://www.cdc.gov/nchs/w2w/index.htm",
-                "note": "CDC directory for vital records offices by state and territory.",
+                "url": "/second-chance/documents/birth-certificate-checklist",
+                "note": "Use the worksheet to request birth records and find the right vital records office.",
                 "icon": "◎",
             },
             {
                 "label": "Replace Vital Documents",
-                "url": "https://www.usa.gov/replace-vital-documents",
-                "note": "USA.gov guide for replacing IDs, vital records, and federal documents.",
+                "url": "/second-chance/documents",
+                "note": "Open the full document center for IDs, records, resume, interview, and verification worksheets.",
                 "icon": "☑",
             },
         ],
@@ -589,14 +590,14 @@ SECOND_CHANCE_RESOURCE_GROUPS = [
         "items": [
             {
                 "label": "CareerOneStop Resume Guide",
-                "url": "https://www.careeronestop.org/JobSearch/Resumes/resumes.aspx",
-                "note": "Resume guidance, examples, and practical job-search support.",
+                "url": "/second-chance/documents/resume-template",
+                "note": "Build a simple second-chance resume packet and download a working template.",
                 "icon": "R",
             },
             {
                 "label": "CareerOneStop Interview Tips",
-                "url": "https://www.careeronestop.org/JobSearch/Interview/interview.aspx",
-                "note": "Interview preparation, questions, and follow-up help.",
+                "url": "/second-chance/documents/interview-prep-worksheet",
+                "note": "Practice answers, follow-up notes, and confidence language before the interview.",
                 "icon": "Q",
             },
             {
@@ -607,14 +608,14 @@ SECOND_CHANCE_RESOURCE_GROUPS = [
             },
             {
                 "label": "Job Prep",
-                "url": "https://www.careeronestop.org/JobSearch/job-search.aspx",
-                "note": "Plan your search, gather documents, prepare applications, and get ready for interviews.",
+                "url": "/second-chance/documents/job-application-tracker",
+                "note": "Track applications, follow-ups, interviews, and next actions in one worksheet.",
                 "icon": "JP",
             },
             {
                 "label": "Canva Resume Templates",
-                "url": "https://www.canva.com/resumes/templates/",
-                "note": "Clean resume templates for building a polished resume packet.",
+                "url": "/second-chance/documents/resume-template",
+                "note": "Open the Second Chance resume template before choosing a visual template.",
                 "icon": "C",
             },
             {
@@ -655,6 +656,247 @@ SECOND_CHANCE_RESOURCE_GROUPS = [
                 "icon": "↗",
             },
         ],
+    },
+]
+
+
+SECOND_CHANCE_DOCUMENTS = [
+    {
+        "slug": "id-checklist",
+        "title": "ID Checklist",
+        "type": "Checklist",
+        "summary": "A step-by-step worksheet for replacing or applying for a state ID, driver's license, or other photo identification.",
+        "resource_url": "https://www.usa.gov/state-motor-vehicle-services",
+        "resource_label": "Find state DMV or ID services",
+        "sections": [
+            {
+                "title": "Gather first",
+                "items": [
+                    "Legal name and any previous names used on records.",
+                    "Date of birth, Social Security number if available, and current mailing address.",
+                    "Proof of address such as mail, lease, shelter letter, or benefits letter.",
+                    "Birth certificate, Social Security card, passport, school record, or other identity proof.",
+                    "Payment method or fee waiver information if your state offers one.",
+                ],
+            },
+            {
+                "title": "Next steps",
+                "items": [
+                    "Check your state ID requirements before visiting the office.",
+                    "Make an appointment if available.",
+                    "Bring originals or certified copies when required.",
+                    "Ask about reduced fees, reentry support, or no-address options if needed.",
+                ],
+            },
+        ],
+        "fields": ["Name on ID", "Documents still missing", "Office/location", "Appointment date", "Fee or waiver notes"],
+    },
+    {
+        "slug": "birth-certificate-checklist",
+        "title": "Birth Certificate Checklist",
+        "type": "Checklist",
+        "summary": "A plain-language tracker for requesting a birth certificate from the correct vital records office.",
+        "resource_url": "https://www.cdc.gov/nchs/w2w/index.htm",
+        "resource_label": "Find vital records offices",
+        "sections": [
+            {
+                "title": "Information usually required",
+                "items": [
+                    "Full name at birth.",
+                    "Date and place of birth.",
+                    "Parent or guardian names listed on the record.",
+                    "Your relationship to the person on the certificate.",
+                    "Photo ID or alternative identity proof.",
+                ],
+            },
+            {
+                "title": "Before you submit",
+                "items": [
+                    "Confirm whether the state accepts online, mail, or in-person requests.",
+                    "Check fee, processing time, and accepted payment methods.",
+                    "Use a secure mailing address where the certificate can be received.",
+                    "Keep the receipt or confirmation number.",
+                ],
+            },
+        ],
+        "fields": ["Birth state/county", "Vital records office", "Request method", "Confirmation number", "Expected arrival"],
+    },
+    {
+        "slug": "social-security-card-checklist",
+        "title": "Social Security Card Checklist",
+        "type": "Checklist",
+        "summary": "A simple guide for replacing a Social Security card or preparing for an SSA office visit.",
+        "resource_url": "https://www.ssa.gov/number-card/replace-card",
+        "resource_label": "Official SSA replacement card page",
+        "sections": [
+            {
+                "title": "Prepare",
+                "items": [
+                    "Confirm whether you can request a replacement card online.",
+                    "Gather proof of identity such as state ID, driver's license, passport, or approved alternate document.",
+                    "Use your current legal name exactly as it appears on records.",
+                    "Prepare mailing address and contact information.",
+                ],
+            },
+            {
+                "title": "Important reminders",
+                "items": [
+                    "The Social Security Administration does not charge for replacement cards.",
+                    "Avoid unofficial sites that ask for unnecessary fees.",
+                    "If online replacement is unavailable, call or visit your local SSA office.",
+                    "Store the card safely after it arrives and avoid carrying it daily.",
+                ],
+            },
+        ],
+        "fields": ["SSA account status", "Identity documents ready", "Local SSA office", "Submitted date", "Follow-up notes"],
+    },
+    {
+        "slug": "resume-template",
+        "title": "Resume Template",
+        "type": "Template",
+        "summary": "A direct, second-chance-friendly resume structure focused on reliability, skills, training, and work readiness.",
+        "resource_url": "https://www.careeronestop.org/JobSearch/Resumes/resumes.aspx",
+        "resource_label": "CareerOneStop resume guide",
+        "sections": [
+            {
+                "title": "Resume sections",
+                "items": [
+                    "Name, phone, email, city, and state.",
+                    "Two-sentence summary focused on the role you want.",
+                    "Core skills such as customer service, warehouse, food service, construction, caregiving, or computer skills.",
+                    "Work history, volunteer work, training, certifications, or informal experience that shows reliability.",
+                    "Education, GED progress, licenses, certificates, and references available upon request.",
+                ],
+            },
+            {
+                "title": "Second-chance framing",
+                "items": [
+                    "Lead with what you can do now.",
+                    "Use steady, honest language without overexplaining personal history.",
+                    "Highlight attendance, teamwork, safety, communication, and follow-through.",
+                    "Prepare a short interview explanation separately instead of putting private details on the resume.",
+                ],
+            },
+        ],
+        "fields": ["Target job", "Top skills", "Recent experience", "Training/certifications", "References to contact"],
+    },
+    {
+        "slug": "job-application-tracker",
+        "title": "Job Application Tracker",
+        "type": "Worksheet",
+        "summary": "A tracker for applications, follow-up dates, interview notes, and next actions.",
+        "app_url": "/second-chance/my-path",
+        "app_label": "Open My Journey tracker",
+        "sections": [
+            {
+                "title": "Track every application",
+                "items": [
+                    "Company or program name.",
+                    "Role or opportunity.",
+                    "Application link or contact person.",
+                    "Date applied and follow-up date.",
+                    "Status: interested, applied, interview, offer, closed, or hired.",
+                ],
+            },
+            {
+                "title": "Follow-up rhythm",
+                "items": [
+                    "Save the job before applying when possible.",
+                    "Follow up within 3 to 5 business days unless instructions say otherwise.",
+                    "Record interview times, names, and thank-you notes.",
+                    "Mark setbacks without deleting them so progress stays visible.",
+                ],
+            },
+        ],
+        "fields": ["Company", "Role", "Applied date", "Follow-up date", "Status/notes"],
+    },
+    {
+        "slug": "interview-prep-worksheet",
+        "title": "Interview Prep Worksheet",
+        "type": "Worksheet",
+        "summary": "Practice prompts for explaining skills, goals, gaps, and setbacks with confidence.",
+        "resource_url": "https://www.careeronestop.org/JobSearch/Interview/interview.aspx",
+        "resource_label": "CareerOneStop interview tips",
+        "sections": [
+            {
+                "title": "Practice answers",
+                "items": [
+                    "Tell me about yourself.",
+                    "Why do you want this job?",
+                    "What makes you reliable?",
+                    "Tell me about a time you handled a challenge.",
+                    "What support or schedule do you need to succeed?",
+                ],
+            },
+            {
+                "title": "Interview day",
+                "items": [
+                    "Confirm address, time, contact name, and transportation plan.",
+                    "Bring ID, resume, references, certificates, and any required documents.",
+                    "Prepare two questions about the job, schedule, training, or next steps.",
+                    "Send or record a thank-you follow-up after the interview.",
+                ],
+            },
+        ],
+        "fields": ["Interview date/time", "Contact person", "Transportation plan", "Three strengths", "Questions to ask"],
+    },
+    {
+        "slug": "expungement-resources",
+        "title": "Expungement Resources",
+        "type": "Resource Guide",
+        "summary": "A planning worksheet for gathering case details and finding local record-sealing or expungement help.",
+        "resource_url": "https://www.lsc.gov/about-lsc/what-legal-aid/get-legal-help",
+        "resource_label": "Find legal aid help",
+        "sections": [
+            {
+                "title": "Information to gather",
+                "items": [
+                    "Court name, county, case number, and charge information.",
+                    "Final disposition, sentence completion date, probation or parole status, and fines/fees.",
+                    "Copies of court records or background check reports.",
+                    "State eligibility rules for expungement, sealing, pardon, or certificate of rehabilitation.",
+                ],
+            },
+            {
+                "title": "Support options",
+                "items": [
+                    "Contact legal aid, reentry organizations, public defender clinics, or law school clinics.",
+                    "Ask whether free expungement clinics are scheduled in your area.",
+                    "Keep copies of every filing, court date, and confirmation.",
+                    "Do not pay a private service until you understand your state's eligibility rules.",
+                ],
+            },
+        ],
+        "fields": ["County/court", "Case number", "Disposition", "Eligibility notes", "Legal aid contact"],
+    },
+    {
+        "slug": "housing-employment-verification",
+        "title": "Housing & Employment Verification Docs",
+        "type": "Template",
+        "summary": "A packet checklist for verification letters, proof of employment, housing history, and support contacts.",
+        "resource_url": "https://www.211.org",
+        "resource_label": "Find local housing and support help",
+        "sections": [
+            {
+                "title": "Documents that may help",
+                "items": [
+                    "Employment offer letter, pay stubs, schedule confirmation, or supervisor contact.",
+                    "Housing reference, shelter verification, lease, utility bill, or residency letter.",
+                    "Program participation letters from workforce, reentry, treatment, faith, or community organizations.",
+                    "Photo ID, Social Security card, birth certificate, and benefit letters when requested.",
+                ],
+            },
+            {
+                "title": "Verification letter basics",
+                "items": [
+                    "Use official letterhead when possible.",
+                    "Include dates, role/status, contact name, phone, and email.",
+                    "Keep copies of letters and who received them.",
+                    "Ask before listing a reference so they are ready for the call.",
+                ],
+            },
+        ],
+        "fields": ["Verification needed", "Contact person", "Phone/email", "Date requested", "Sent to"],
     },
 ]
 
@@ -2056,6 +2298,39 @@ def second_chance_resource_item(group_slug, item_index):
     return items[item_index]
 
 
+def second_chance_document(slug):
+    return next(
+        (document for document in SECOND_CHANCE_DOCUMENTS if document["slug"] == slug),
+        None,
+    )
+
+
+def second_chance_document_download_body(document):
+    lines = [
+        f"Second Chance Careers - {document['title']}",
+        document["type"],
+        "",
+        document["summary"],
+        "",
+    ]
+    for section in document.get("sections", []):
+        lines.append(section["title"])
+        for item in section.get("items", []):
+            lines.append(f"- {item}")
+        lines.append("")
+    if document.get("fields"):
+        lines.append("My notes")
+        for field in document["fields"]:
+            lines.append(f"{field}: ________________________________________________")
+        lines.append("")
+    if document.get("resource_url"):
+        lines.extend([f"Helpful resource: {document.get('resource_label', 'Open resource')}", document["resource_url"], ""])
+    if document.get("app_url"):
+        lines.extend([f"In-app tool: {document.get('app_label', 'Open tool')}", document["app_url"], ""])
+    lines.append("Keep going. One document at a time still counts as progress.")
+    return "\n".join(lines)
+
+
 def second_chance_checklist_items():
     return [
         {
@@ -3221,6 +3496,41 @@ def second_chance_my_path():
         job_help=SECOND_CHANCE_JOB_HELP,
         features=SECOND_CHANCE_FEATURES,
         resource_groups=SECOND_CHANCE_RESOURCE_GROUPS,
+    )
+
+
+@app.route("/second-chance/documents")
+def second_chance_documents():
+    return render_template(
+        "second_chance/documents.html",
+        documents=SECOND_CHANCE_DOCUMENTS,
+    )
+
+
+@app.route("/second-chance/documents/<slug>")
+def second_chance_document_detail(slug):
+    document = second_chance_document(slug)
+    if not document:
+        flash("That document was not found. Open the Document Center to choose a worksheet.")
+        return redirect(url_for("second_chance_documents"))
+    return render_template(
+        "second_chance/document_detail.html",
+        document=document,
+        documents=SECOND_CHANCE_DOCUMENTS,
+    )
+
+
+@app.route("/second-chance/documents/<slug>/download")
+def second_chance_document_download(slug):
+    document = second_chance_document(slug)
+    if not document:
+        flash("That download was not found. Open the Document Center to choose a worksheet.")
+        return redirect(url_for("second_chance_documents"))
+    filename = f"second-chance-{document['slug']}.txt"
+    return Response(
+        second_chance_document_download_body(document),
+        mimetype="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 

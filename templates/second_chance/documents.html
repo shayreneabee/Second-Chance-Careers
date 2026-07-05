@@ -1,0 +1,159 @@
+{% extends "second_chance/base.html" %}
+
+{% block title %}Document Center | Second Chance Careers{% endblock %}
+
+{% block head %}
+<style>
+  .docs-hero {
+    display: grid;
+    gap: 0.8rem;
+    padding: clamp(1.5rem, 5vw, 3rem) 1rem;
+    background:
+      radial-gradient(circle at 88% 18%, rgba(242, 255, 168, 0.48), transparent 13rem),
+      linear-gradient(135deg, rgba(15, 111, 107, 0.98), rgba(7, 21, 20, 0.9));
+    color: #fff;
+  }
+
+  .docs-hero h1 {
+    margin: 0;
+    color: var(--sc-cream);
+    font-size: clamp(2.35rem, 8vw, 4.5rem);
+    line-height: 0.96;
+    font-weight: 400;
+  }
+
+  .docs-hero p {
+    max-width: 760px;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .docs-shell {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .docs-note,
+  .doc-card,
+  .empty-docs {
+    border: 1px solid var(--sc-line);
+    border-radius: var(--sc-radius);
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: var(--sc-lift);
+  }
+
+  .docs-note {
+    display: grid;
+    gap: 0.45rem;
+    padding: 1rem;
+  }
+
+  .docs-note h2,
+  .doc-card h2 {
+    margin: 0;
+    color: var(--sc-teal-dark);
+    line-height: 1.05;
+  }
+
+  .docs-note p,
+  .doc-card p,
+  .empty-docs {
+    margin: 0;
+    color: #42615e;
+  }
+
+  .docs-grid {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .doc-card {
+    display: grid;
+    gap: 0.7rem;
+    padding: 1rem;
+  }
+
+  .doc-meta {
+    width: fit-content;
+    border-radius: 999px;
+    background: rgba(15, 111, 107, 0.1);
+    color: var(--sc-teal-dark);
+    padding: 0.32rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .doc-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+  }
+
+  .doc-secondary {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(15, 111, 107, 0.22);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--sc-teal-dark);
+    padding: 0.35rem 0.85rem;
+    font-weight: 900;
+  }
+
+  .empty-docs {
+    padding: 1rem;
+  }
+
+  @media (min-width: 760px) {
+    .docs-hero {
+      padding: 3rem 2rem;
+    }
+
+    .docs-shell {
+      padding: 2rem;
+    }
+
+    .docs-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="docs-hero">
+  <p class="doc-meta">Document Center</p>
+  <h1>Paperwork should not stop progress.</h1>
+  <p>Open a checklist, use the worksheet, download a copy, or jump to the right resource. Every document card here does something real.</p>
+</section>
+
+<div class="docs-shell">
+  <section class="docs-note" aria-labelledby="docs-start-title">
+    <h2 id="docs-start-title">Start where the barrier is.</h2>
+    <p>If a document is missing, choose its checklist and write down the next practical step. If you are tracking applications, use My Journey so progress stays connected to your account.</p>
+  </section>
+
+  {% if documents %}
+    <section class="docs-grid" aria-label="Available document worksheets">
+      {% for document in documents %}
+        <article class="doc-card">
+          <span class="doc-meta">{{ document.type }}</span>
+          <h2>{{ document.title }}</h2>
+          <p>{{ document.summary }}</p>
+          <div class="doc-actions">
+            <a class="sc-button" href="{{ url_for('second_chance_document_detail', slug=document.slug) }}">Open Worksheet</a>
+            <a class="doc-secondary" href="{{ url_for('second_chance_document_download', slug=document.slug) }}">Download</a>
+          </div>
+        </article>
+      {% endfor %}
+    </section>
+  {% else %}
+    <p class="empty-docs">Document worksheets are being prepared. Check Resources for live support links while this library is updated.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -310,6 +310,29 @@
       rgba(255, 255, 255, 0.86);
   }
 
+  .coming-soon {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .coming-soon summary {
+    list-style: none;
+    width: fit-content;
+  }
+
+  .coming-soon summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .coming-soon p {
+    margin: 0;
+    border-radius: 14px;
+    background: rgba(15, 111, 107, 0.08);
+    color: #244c49;
+    padding: 0.7rem;
+    font-weight: 700;
+  }
+
   .start-panel {
     padding: 1.25rem 1rem;
     border-radius: var(--sc-radius);
@@ -388,6 +411,7 @@
   <div class="journey-actions">
     <a class="sc-button" href="{{ url_for('jobs') }}">Find Jobs</a>
     <a class="sc-button" href="{{ url_for('second_chance_resource_page', slug='resume-interview') }}">Resume Help</a>
+    <a class="sc-button" href="{{ url_for('second_chance_documents') }}">Documents</a>
     <a class="sc-button" href="{{ url_for('second_chance_edit_profile') }}">Update Profile</a>
   </div>
 </section>
@@ -460,11 +484,11 @@
               {% elif item.key == "step-2" %}
                 <a class="mini-button" href="{{ url_for('second_chance_search') }}">Choose path</a>
               {% elif item.key == "step-3" %}
-                <a class="mini-button" href="{{ url_for('second_chance_resource_page', slug='resume-interview') }}">Resume help</a>
+                <a class="mini-button" href="{{ url_for('second_chance_document_detail', slug='resume-template') }}">Resume help</a>
               {% elif item.key == "step-4" %}
-                <a class="mini-button" href="{{ url_for('second_chance_resource_page', slug='documents-id') }}">Document help</a>
+                <a class="mini-button" href="{{ url_for('second_chance_documents') }}">Document help</a>
               {% elif item.key == "step-5" %}
-                <a class="mini-button" href="{{ url_for('second_chance_resource_page', slug='resume-interview') }}">Interview prep</a>
+                <a class="mini-button" href="{{ url_for('second_chance_document_detail', slug='interview-prep-worksheet') }}">Interview prep</a>
               {% elif item.key == "step-6" %}
                 <a class="mini-button" href="{{ url_for('second_chance_resource_page', slug='quick-hire-applications') }}">Apply now</a>
               {% endif %}
@@ -659,7 +683,10 @@
           <small>Circle</small>
           <h3>{{ circle.title }}</h3>
           <p>{{ circle.detail }}</p>
-          <button class="sc-button" type="button">Join a Circle</button>
+          <details class="coming-soon">
+            <summary class="sc-button">Join a Circle</summary>
+            <p>Circle signups are coming soon. For now, share an update in the community feed and keep checking back.</p>
+          </details>
         </article>
       {% endfor %}
     </div>

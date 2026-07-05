@@ -362,7 +362,7 @@
       min-height: 70px;
       transform: translateX(-50%);
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       align-items: center;
       background: var(--sc-teal);
       color: var(--sc-cream);
@@ -652,6 +652,7 @@
         <a class="sc-desktop-link {% if request.path.startswith('/second-chance/search') %}active{% endif %}" href="{{ url_for('second_chance_search') }}">Search</a>
         <a class="sc-desktop-link {% if 'felony-friendly-employers' in request.path %}active{% endif %}" href="{{ url_for('felony_friendly_employers') }}">Employers</a>
         <a class="sc-desktop-link {% if request.path in ['/jobs', '/second-chance/jobs'] %}active{% endif %}" href="{{ url_for('jobs') }}">Jobs</a>
+        <a class="sc-desktop-link {% if request.path.startswith('/second-chance/documents') %}active{% endif %}" href="{{ url_for('second_chance_documents') }}">Documents</a>
         <a class="sc-desktop-link {% if request.path.startswith('/second-chance/profile') or request.path.startswith('/profile') %}active{% endif %}" href="{{ url_for('second_chance_profile') }}">Profile</a>
         <a class="sc-desktop-link {% if request.path in ['/my-path', '/second-chance/my-path'] %}active{% endif %}" href="{{ url_for('second_chance_my_path') }}">My Journey</a>
         <a class="sc-desktop-link" href="https://brentandco.org/sso/start?app=lets-cook">Let's Cook</a>
@@ -676,6 +677,7 @@
     <nav class="sc-bottom" aria-label="Second Chance navigation">
       <a class="{% if request.path in ['/second-chance', '/'] %}active{% endif %}" href="{{ url_for('second_chance_home') }}" aria-label="Home">⌂</a>
       <a class="{% if request.path in ['/jobs', '/second-chance/jobs'] %}active{% endif %}" href="{{ url_for('jobs') }}" aria-label="Jobs">⌕</a>
+      <a class="{% if request.path.startswith('/second-chance/documents') %}active{% endif %}" href="{{ url_for('second_chance_documents') }}" aria-label="Documents">▤</a>
       <a class="{% if request.path.startswith('/second-chance/profile') or request.path.startswith('/profile') %}active{% endif %}" href="{{ url_for('second_chance_profile') }}" aria-label="Profile">♙</a>
       <a class="{% if request.path in ['/my-path', '/second-chance/my-path'] %}active{% endif %}" href="{{ url_for('second_chance_my_path') }}" aria-label="My Journey">✓</a>
     </nav>

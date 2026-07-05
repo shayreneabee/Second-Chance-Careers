@@ -1,0 +1,239 @@
+{% extends "second_chance/base.html" %}
+
+{% block title %}{{ document.title }} | Second Chance Careers{% endblock %}
+
+{% block head %}
+<style>
+  .doc-detail-hero {
+    display: grid;
+    gap: 0.85rem;
+    padding: clamp(1.5rem, 5vw, 3rem) 1rem;
+    background:
+      radial-gradient(circle at 90% 16%, rgba(242, 255, 168, 0.5), transparent 13rem),
+      linear-gradient(135deg, rgba(15, 111, 107, 0.98), rgba(8, 41, 39, 0.94));
+    color: #fff;
+  }
+
+  .doc-detail-hero h1 {
+    margin: 0;
+    color: var(--sc-cream);
+    font-size: clamp(2.2rem, 8vw, 4.35rem);
+    line-height: 0.96;
+    font-weight: 400;
+  }
+
+  .doc-detail-hero p {
+    max-width: 760px;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .doc-type {
+    width: fit-content;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+    padding: 0.32rem 0.7rem;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .doc-detail-shell {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .doc-panel,
+  .doc-section,
+  .doc-field-card {
+    border: 1px solid var(--sc-line);
+    border-radius: var(--sc-radius);
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: var(--sc-lift);
+  }
+
+  .doc-panel,
+  .doc-section,
+  .doc-field-card {
+    padding: 1rem;
+  }
+
+  .doc-panel h2,
+  .doc-section h2,
+  .doc-field-card h2 {
+    margin: 0;
+    color: var(--sc-teal-dark);
+    line-height: 1.05;
+  }
+
+  .doc-panel p,
+  .doc-section li,
+  .doc-field-card p {
+    color: #42615e;
+  }
+
+  .doc-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.8rem;
+  }
+
+  .doc-secondary {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(15, 111, 107, 0.22);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--sc-teal-dark);
+    padding: 0.35rem 0.85rem;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .doc-grid,
+  .field-grid {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .doc-section ul {
+    margin: 0.75rem 0 0;
+    padding-left: 1.2rem;
+  }
+
+  .field-grid {
+    margin-top: 0.85rem;
+  }
+
+  .field-line {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .field-line label {
+    color: var(--sc-teal-dark);
+    font-weight: 900;
+  }
+
+  .field-line input,
+  .field-line textarea {
+    width: 100%;
+    border: 1px solid var(--sc-line);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.88);
+    color: #144a39;
+    padding: 0.72rem 0.82rem;
+  }
+
+  .field-line textarea {
+    min-height: 88px;
+    resize: vertical;
+  }
+
+  @media (min-width: 760px) {
+    .doc-detail-hero {
+      padding: 3rem 2rem;
+    }
+
+    .doc-detail-shell {
+      padding: 2rem;
+    }
+
+    .doc-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .field-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .field-line:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media print {
+    .sc-top,
+    .sc-bottom,
+    .ecosystem-footer,
+    .doc-actions {
+      display: none !important;
+    }
+
+    .sc-page,
+    .doc-detail-shell,
+    .doc-detail-hero {
+      width: 100%;
+      box-shadow: none;
+      background: #fff;
+      color: #111;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="doc-detail-hero">
+  <span class="doc-type">{{ document.type }}</span>
+  <h1>{{ document.title }}</h1>
+  <p>{{ document.summary }}</p>
+  <div class="doc-actions">
+    <a class="sc-button" href="{{ url_for('second_chance_document_download', slug=document.slug) }}">Download Worksheet</a>
+    <button class="doc-secondary" type="button" onclick="window.print()">Print</button>
+    {% if document.app_url %}
+      <a class="doc-secondary" href="{{ document.app_url }}">{{ document.app_label }}</a>
+    {% endif %}
+    {% if document.resource_url %}
+      <a class="doc-secondary" href="{{ document.resource_url }}" target="_blank" rel="noopener noreferrer">{{ document.resource_label }}</a>
+    {% endif %}
+  </div>
+</section>
+
+<div class="doc-detail-shell">
+  <section class="doc-panel" aria-labelledby="doc-note-title">
+    <h2 id="doc-note-title">Use this as your working copy.</h2>
+    <p>Fill in what you know, download or print a copy, and bring it to the office, interview, program, or support appointment. If a field does not apply, leave it blank and keep moving.</p>
+  </section>
+
+  <section class="doc-grid" aria-label="{{ document.title }} sections">
+    {% for section in document.sections %}
+      <article class="doc-section">
+        <h2>{{ section.title }}</h2>
+        <ul>
+          {% for item in section["items"] %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </article>
+    {% endfor %}
+  </section>
+
+  <section class="doc-field-card" aria-labelledby="doc-fields-title">
+    <h2 id="doc-fields-title">My worksheet</h2>
+    <p>These notes stay on this page until you print or download. For saved application tracking, use My Journey.</p>
+    <form class="field-grid">
+      {% for field in document.fields %}
+        <div class="field-line">
+          <label for="doc-field-{{ loop.index }}">{{ field }}</label>
+          {% if loop.last %}
+            <textarea id="doc-field-{{ loop.index }}" name="field_{{ loop.index }}"></textarea>
+          {% else %}
+            <input id="doc-field-{{ loop.index }}" name="field_{{ loop.index }}">
+          {% endif %}
+        </div>
+      {% endfor %}
+    </form>
+  </section>
+
+  <div class="doc-actions">
+    <a class="doc-secondary" href="{{ url_for('second_chance_documents') }}">Back to Document Center</a>
+    <a class="doc-secondary" href="{{ url_for('second_chance_resources') }}">Open Resource Library</a>
+  </div>
+</div>
+{% endblock %}
